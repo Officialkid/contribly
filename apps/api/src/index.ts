@@ -82,10 +82,10 @@ void (async () => {
     const claimRoutes = (await import("./routes/claim.routes.js")).default;
     console.log("✓ Claim routes loaded");
 
-    app.use(authRoutes);
-    app.use(organizationRoutes);
-    app.use(paymentRoutes);
-    app.use(claimRoutes);
+    app.use("/api", authRoutes);
+    app.use("/api", organizationRoutes);
+    app.use("/api", paymentRoutes);
+    app.use("/api", claimRoutes);
     console.log("✓ All routes registered successfully");
   } catch (err) {
     console.error("❌ Failed to load routes:", err instanceof Error ? err.message : err);
