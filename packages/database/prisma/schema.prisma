@@ -1,0 +1,356 @@
+// Prisma schema for Contribly
+// Multi-tenant SaaS with orgs, departments, payments, OTP, PIN
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// AUTHENTICATION & USERS
+// ============================================================================
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  passwordHash      String?
+
+  // OAuth
+  authProvider      String?
+  providerUserId    String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  organizationMembers OrganizationMember[]
+  departmentMembers   DepartmentMember[]
+  paymentClaims       PaymentClaim[]
+  withdrawals         Withdrawal[]
+  withdrawalOTPs      WithdrawalOTP[]
+  chiefAdminPins      ChiefAdminPIN[]
+  auditLogs           AuditLog[]
+  inviteLinks         InviteLink[]
+
+  @@index([email])
+}
+
+// ============================================================================
+// ORGANIZATIONS & MULTI-TENANCY
+// ============================================================================
+
+model Organization {
+  id                String   @id @default(cuid())
+  name              String
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  members           OrganizationMember[]
+  paymentAccount    PaymentAccount?
+  departments       Department[]
+  payments          Payment[]
+  chiefAdminPINs    ChiefAdminPIN[]
+  auditLogs         AuditLog[]
+
+  @@index([name])
+}
+
+model OrganizationMember {
+  id                String   @id @default(cuid())
+  userId            String
+  organizationId    String
+  role              OrganizationRole @default(MEMBER)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([role])
+}
+
+enum OrganizationRole {
+  CHIEF_ADMIN
+  MEMBER
+}
+
+// ============================================================================
+// PAYMENT ACCOUNTS
+// ============================================================================
+
+model PaymentAccount {
+  id                String   @id @default(cuid())
+  organizationId    String   @unique
+  accountType       AccountType
+  accountNumber     String
+  accountName       String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([accountNumber])
+}
+
+enum AccountType {
+  MPESA_TILL
+  MPESA_PAYBILL
+  BANK
+  OTHER
+}
+
+// ============================================================================
+// DEPARTMENTS
+// ============================================================================
+
+model Department {
+  id                   String   @id @default(cuid())
+  organizationId       String
+  name                 String
+  monthlyContribution  Decimal?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organization         Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members              DepartmentMember[]
+  payments             Payment[]
+  withdrawals          Withdrawal[]
+  inviteLinks          InviteLink[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+enum DepartmentRole {
+  ADMIN
+  MEMBER
+}
+
+model DepartmentMember {
+  id                String   @id @default(cuid())
+  userId            String
+  departmentId      String
+  role              DepartmentRole @default(MEMBER)
+  paymentReference  String
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department        Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, paymentReference])
+  @@unique([userId, departmentId])
+  @@index([departmentId])
+  @@index([paymentReference])
+  @@index([role])
+}
+
+// ============================================================================
+// INVITE LINKS
+// ============================================================================
+
+model InviteLink {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  departmentId   String
+  createdByUserId String
+  expiresAt      DateTime?
+  maxUses        Int?
+  usedCount      Int      @default(0)
+  isActive       Boolean  @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  department     Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdBy      User       @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([departmentId])
+  @@index([createdByUserId])
+  @@index([code])
+  @@index([expiresAt])
+}
+
+// ============================================================================
+// PAYMENTS & TRANSACTIONS
+// ============================================================================
+
+model Payment {
+  id                String   @id @default(cuid())
+  organizationId    String
+  departmentId      String?
+  userId            String?
+
+  amount            Decimal
+  reference         String?
+  accountNumber     String?
+  status            PaymentStatus @default(UNMATCHED)
+
+  transactionDate   DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department        Department?  @relation(fields: [departmentId], references: [id])
+  claim             PaymentClaim?
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([status])
+  @@index([reference])
+  @@index([transactionDate])
+}
+
+enum PaymentStatus {
+  MATCHED
+  UNMATCHED
+  CLAIMED
+}
+
+// ============================================================================
+// PAYMENT CLAIMS
+// ============================================================================
+
+model PaymentClaim {
+  id                String   @id @default(cuid())
+  paymentId         String   @unique
+  userId            String
+  departmentId      String
+
+  transactionCode   String
+  details           String?
+  status            ClaimStatus @default(PENDING)
+
+  submittedAt       DateTime @default(now())
+  reviewedAt        DateTime?
+  approvedBy        String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  payment           Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
+  @@index([departmentId])
+  @@index([submittedAt])
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============================================================================
+// WITHDRAWALS & SECURITY
+// ============================================================================
+
+model Withdrawal {
+  id                String   @id @default(cuid())
+  departmentId      String
+  creatorId         String
+
+  amount            Decimal
+  reason            String
+  status            WithdrawalStatus @default(PENDING_APPROVAL)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  department        Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  creator           User       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  otps              WithdrawalOTP[]
+
+  @@index([departmentId])
+  @@index([creatorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum WithdrawalStatus {
+  PENDING_APPROVAL
+  APPROVED
+  PENDING_OTP
+  COMPLETED
+  REJECTED
+}
+
+model WithdrawalOTP {
+  id            String   @id @default(cuid())
+  withdrawalId  String
+  userId        String
+  code          String
+  expiresAt     DateTime
+  isUsed        Boolean  @default(false)
+  usedAt        DateTime?
+
+  createdAt     DateTime @default(now())
+
+  withdrawal    Withdrawal @relation(fields: [withdrawalId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([withdrawalId, userId])
+  @@index([userId])
+  @@index([code])
+  @@index([expiresAt])
+}
+
+// ============================================================================
+// CHIEF ADMIN PIN (Optional)
+// ============================================================================
+
+model ChiefAdminPIN {
+  id              String   @id @default(cuid())
+  userId          String
+  organizationId  String
+  pinHash         String
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+// ============================================================================
+// AUDIT LOGGING
+// ============================================================================
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  organizationId  String
+  userId          String
+  action          String
+  resourceType    String
+  resourceId      String
+  details         String?
+
+  createdAt       DateTime @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}

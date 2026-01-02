@@ -1,0 +1,12 @@
+node_modules/
+.turbo/
+.env.local
+.env.*.local
+.DS_Store
+*.log
+.vscode/
+.idea/
+dist/
+build/
+.next/
+postgres_data/

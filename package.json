@@ -1,0 +1,35 @@
+{
+  "name": "contribly",
+  "version": "0.1.0",
+  "description": "Multi-tenant SaaS platform for collaborative contributions",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:setup": "cd packages/database && prisma migrate deploy && prisma db seed",
+    "db:reset": "cd packages/database && prisma migrate reset --force",
+    "db:push": "cd packages/database && prisma db push",
+    "db:studio": "cd packages/database && prisma studio",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "type-check": "turbo run type-check"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.0",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
