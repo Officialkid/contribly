@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOrg } from "@/lib/org-context";
 import { apiClient } from "@/lib/api-client";
+import { OnboardingView } from "@/components/onboarding/onboarding-view";
+import { OnboardingTutorial } from "@/components/onboarding/onboarding-tutorial";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -13,17 +15,48 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const mobileDrawerRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const { user, activeOrgId, activeOrg, activeDeptId, departments, setActiveOrgId, setActiveDeptId, reset } = useOrg();
+  const { user, activeOrgId, activeOrg, activeDeptId, departments, setActiveOrgId, setActiveDeptId, reset, isLoading } = useOrg();
   const router = useRouter();
   const pathname = usePathname();
+
+  // Check if user has completed tutorial
+  useEffect(() => {
+    if (!isLoading && user && activeOrg) {
+      const tutorialCompleted = localStorage.getItem("contribly_tutorial_completed");
+      if (!tutorialCompleted) {
+        setShowTutorial(true);
+      }
+    }
+  }, [isLoading, user, activeOrg]);
 
   if (!user) {
     return null;
   }
 
-  const isChiefAdmin = activeOrg?.role === "CHIEF_ADMIN";
+  // Show onboarding if user has no organizations
+  if (!isLoading && (!user.organizations || user.organizations.length === 0)) {
+    return <OnboardingView />;
+  }
+
+  // Show loading state while organizations are being fetched
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-text-muted">Loading your workspace...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Default to MEMBER role if role is undefined or null (safety during hydration)
+  const userRole = activeOrg?.role || "MEMBER";
+  const isChiefAdmin = userRole === "CHIEF_ADMIN";
+  const isAdmin = userRole === "CHIEF_ADMIN" || userRole === "ADMIN";
 
   const navigationItems = [
     {
@@ -135,32 +168,46 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {sidebarOpen ? (
             <>
               <label className="text-xs font-bold text-text-muted uppercase tracking-wide mb-2 block">Organization</label>
-              <select
-                value={activeOrgId || ""}
-                onChange={(e) => setActiveOrgId(e.target.value)}
-                className="w-full px-3 py-2 bg-background border-2 border-border rounded-button text-sm text-text-primary font-medium focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
-              >
-                {user.organizations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-              {activeOrg && (
-                <div className="mt-3 px-3 py-2 bg-primary/5 rounded-lg">
-                  <span className="text-xs font-semibold text-primary">
-                    {isChiefAdmin ? "👑 Chief Admin" : "👤 Member"}
-                  </span>
+              {user.organizations && user.organizations.length > 0 ? (
+                <>
+                  <select
+                    value={activeOrgId || ""}
+                    onChange={(e) => setActiveOrgId(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border-2 border-border rounded-button text-sm text-text-primary font-medium focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                  >
+                    {user.organizations.map((org) => (
+                      <option key={org.id} value={org.id}>
+                        {org.name}
+                      </option>
+                    ))}
+                  </select>
+                  {activeOrg && (
+                    <div className="mt-3 px-3 py-2 bg-primary/5 rounded-lg">
+                      <span className="text-xs font-semibold text-primary">
+                        {isChiefAdmin ? "👑 Chief Admin" : "👤 Member"}
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="px-3 py-2 bg-background border border-border rounded-button text-sm text-text-muted">
+                  No organization
                 </div>
               )}
             </>
           ) : (
             <div className="flex justify-center">
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                <span className="text-primary font-bold text-sm">
-                  {activeOrg?.name.substring(0, 2).toUpperCase()}
-                </span>
-              </div>
+              {activeOrg ? (
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <span className="text-primary font-bold text-sm">
+                    {activeOrg.name.substring(0, 2).toUpperCase()}
+                  </span>
+                </div>
+              ) : (
+                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                  <span className="text-gray-400 font-bold text-sm">--</span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -195,22 +242,49 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <>
               <div className="flex items-center justify-between mb-3">
                 <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Departments</label>
-              </div>
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {departments.map((dept) => (
+                {isChiefAdmin && (
                   <button
-                    key={dept.id}
-                    onClick={() => setActiveDeptId(dept.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      activeDeptId === dept.id
-                        ? "bg-accent/10 text-accent border-l-4 border-accent"
-                        : "text-text-muted hover:bg-background hover:text-text-primary"
-                    }`}
+                    onClick={() => {/* TODO: Open create department modal */}}
+                    className="p-1 rounded hover:bg-primary/10 text-primary transition-colors"
+                    title="Create Department"
                   >
-                    {dept.name}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
                   </button>
-                ))}
+                )}
               </div>
+              {departments.length > 0 ? (
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {departments.map((dept) => (
+                    <button
+                      key={dept.id}
+                      onClick={() => setActiveDeptId(dept.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        activeDeptId === dept.id
+                          ? "bg-accent/10 text-accent border-l-4 border-accent"
+                          : "text-text-muted hover:bg-background hover:text-text-primary"
+                      }`}
+                    >
+                      {dept.name}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 px-2">
+                  <p className="text-xs text-text-muted mb-2">
+                    {isChiefAdmin ? "No departments yet" : "No departments available"}
+                  </p>
+                  {isChiefAdmin && (
+                    <button
+                      onClick={() => {/* TODO: Open create department modal */}}
+                      className="text-xs text-primary hover:underline font-semibold"
+                    >
+                      Create Department
+                    </button>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <div className="flex justify-center">
@@ -264,7 +338,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <aside className="fixed top-0 left-0 w-80 h-full bg-white shadow-large overflow-y-auto">
+          <aside ref={mobileDrawerRef} className="fixed top-0 left-0 w-80 h-full bg-white shadow-large overflow-y-auto">
             {/* Mobile Sidebar Header */}
             <div className="flex items-center justify-between h-16 px-6 border-b border-border bg-gradient-to-r from-primary/5 to-accent/5">
               <div className="flex items-center gap-3">
@@ -276,6 +350,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <span className="text-xl font-bold text-primary">Contribly</span>
               </div>
               <button
+                ref={closeButtonRef}
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2 rounded-lg hover:bg-background transition-colors"
               >
@@ -288,22 +363,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* Mobile Organization Selector */}
             <div className="p-4 border-b border-border">
               <label className="text-xs font-bold text-text-muted uppercase tracking-wide mb-2 block">Organization</label>
-              <select
-                value={activeOrgId || ""}
-                onChange={(e) => setActiveOrgId(e.target.value)}
-                className="w-full px-3 py-2 bg-background border-2 border-border rounded-button text-sm text-text-primary font-medium focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
-              >
-                {user.organizations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-              {activeOrg && (
-                <div className="mt-3 px-3 py-2 bg-primary/5 rounded-lg">
-                  <span className="text-xs font-semibold text-primary">
-                    {isChiefAdmin ? "👑 Chief Admin" : "👤 Member"}
-                  </span>
+              {user.organizations && user.organizations.length > 0 ? (
+                <>
+                  <select
+                    value={activeOrgId || ""}
+                    onChange={(e) => setActiveOrgId(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border-2 border-border rounded-button text-sm text-text-primary font-medium focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                  >
+                    {user.organizations.map((org) => (
+                      <option key={org.id} value={org.id}>
+                        {org.name}
+                      </option>
+                    ))}
+                  </select>
+                  {activeOrg && (
+                    <div className="mt-3 px-3 py-2 bg-primary/5 rounded-lg">
+                      <span className="text-xs font-semibold text-primary">
+                        {isChiefAdmin ? "👑 Chief Admin" : "👤 Member"}
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="px-3 py-2 bg-background border border-border rounded-button text-sm text-text-muted">
+                  No organization
                 </div>
               )}
             </div>
@@ -334,25 +417,52 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="border-t border-border p-4">
               <div className="flex items-center justify-between mb-3">
                 <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Departments</label>
-              </div>
-              <div className="space-y-1">
-                {departments.map((dept) => (
+                {isChiefAdmin && (
                   <button
-                    key={dept.id}
-                    onClick={() => {
-                      setActiveDeptId(dept.id);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      activeDeptId === dept.id
-                        ? "bg-accent/10 text-accent border-l-4 border-accent"
-                        : "text-text-muted hover:bg-background hover:text-text-primary"
-                    }`}
+                    onClick={() => {/* TODO: Open create department modal */}}
+                    className="p-1 rounded hover:bg-primary/10 text-primary transition-colors"
+                    title="Create Department"
                   >
-                    {dept.name}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
                   </button>
-                ))}
+                )}
               </div>
+              {departments.length > 0 ? (
+                <div className="space-y-1">
+                  {departments.map((dept) => (
+                    <button
+                      key={dept.id}
+                      onClick={() => {
+                        setActiveDeptId(dept.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        activeDeptId === dept.id
+                          ? "bg-accent/10 text-accent border-l-4 border-accent"
+                          : "text-text-muted hover:bg-background hover:text-text-primary"
+                      }`}
+                    >
+                      {dept.name}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 px-2">
+                  <p className="text-xs text-text-muted mb-2">
+                    {isChiefAdmin ? "No departments yet" : "No departments available"}
+                  </p>
+                  {isChiefAdmin && (
+                    <button
+                      onClick={() => {/* TODO: Open create department modal */}}
+                      className="text-xs text-primary hover:underline font-semibold"
+                    >
+                      Create Department
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Mobile User Info */}
@@ -425,6 +535,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </div>
       </main>
+
+      {/* Onboarding Tutorial */}
+      {showTutorial && (
+        <OnboardingTutorial
+          userRole={userRole as "CHIEF_ADMIN" | "ADMIN" | "MEMBER"}
+          onComplete={() => setShowTutorial(false)}
+        />
+      )}
     </div>
   );
 }

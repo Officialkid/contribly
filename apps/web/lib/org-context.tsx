@@ -31,6 +31,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initUser = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const response = await apiClient.getMe();
         const rawUser = response.user;
@@ -38,39 +39,56 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
         if (!rawUser) {
           setUser(null);
           setActiveOrgId(null);
+          setIsLoading(false);
           return;
         }
 
+        // Normalize organizations array
         let organizations = Array.isArray((rawUser as any).organizations)
           ? (rawUser as any).organizations
           : [];
 
+        // Get organizationId from user or first org
         const organizationId = (rawUser as any).organizationId || organizations[0]?.id || null;
-        const role = (rawUser as any).role;
+        const role = (rawUser as any).role || "MEMBER"; // Default to MEMBER if no role
         const departmentIdFromUser = (rawUser as any).departmentId ?? null;
 
+        // If user has organizationId but no organizations array, fetch it
         if (organizationId && organizations.length === 0) {
           try {
             const orgResponse = await apiClient.getOrganization(organizationId);
             const organization = (orgResponse as any).organization ?? (orgResponse as any);
 
             if (organization?.id) {
-              organizations = [organization];
+              organizations = [{ ...organization, role }];
             }
           } catch (orgErr) {
-            setError(orgErr instanceof Error ? orgErr.message : "Failed to load organization");
+            console.error("Failed to fetch organization:", orgErr);
+            setError("Could not load organization details");
           }
         }
 
-        setUser({ ...(rawUser as any), role, departmentId: departmentIdFromUser, organizations });
+        // Set normalized user with organizations
+        setUser({
+          id: rawUser.id,
+          email: rawUser.email,
+          name: rawUser.name || null,
+          role,
+          departmentId: departmentIdFromUser,
+          organizations,
+        } as User);
 
-        if (organizationId) {
+        // Set active org if available
+        if (organizationId && organizations.length > 0) {
           setActiveOrgId(organizationId);
         }
+
+        // Set active department if available
         if (departmentIdFromUser) {
           setActiveDeptId(departmentIdFromUser);
         }
       } catch (err) {
+        console.error("Failed to load user:", err);
         setError(err instanceof Error ? err.message : "Failed to load user");
         setUser(null);
         setActiveOrgId(null);
@@ -92,12 +110,17 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     const fetchDepts = async () => {
       try {
         const response = await apiClient.listDepartments(activeOrgId);
-        setDepartments(response.departments || []);
-        if (response.departments?.[0]) {
-          setActiveDeptId(response.departments[0].id);
+        const depts = response.departments || [];
+        setDepartments(depts);
+        
+        // Only auto-select first dept if user doesn't have a specific department
+        if (depts.length > 0 && !user?.departmentId) {
+          setActiveDeptId(depts[0].id);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load departments");
+        console.error("Failed to load departments:", err);
+        setDepartments([]);
+        // Don't set error for departments - it's not critical
       }
     };
 

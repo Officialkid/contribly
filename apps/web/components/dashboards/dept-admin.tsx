@@ -15,13 +15,17 @@ export function DeptAdminDashboard() {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!activeOrgId || !activeDeptId) return;
+    if (!activeOrgId || !activeDeptId) {
+      setIsLoading(false);
+      return;
+    }
 
     const fetchSummary = async () => {
       try {
         setIsLoading(true);
         const response = await apiClient.getDepartmentContributions(activeOrgId, activeDeptId, year);
         setSummary(response.summary);
+        setError(null);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load summary";
         setError(message);
@@ -33,6 +37,15 @@ export function DeptAdminDashboard() {
 
     fetchSummary();
   }, [activeOrgId, activeDeptId, year]);
+
+  if (!activeOrgId || !activeDeptId) {
+    return (
+      <EmptyState
+        title="No Department Selected"
+        message="Please select a department from the sidebar to view its contribution details."
+      />
+    );
+  }
 
   if (isLoading) {
     return (

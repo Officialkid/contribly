@@ -14,13 +14,17 @@ export function MemberDashboard() {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!activeOrgId || !activeDeptId || !user) return;
+    if (!activeOrgId || !activeDeptId || !user) {
+      setIsLoading(false);
+      return;
+    }
 
     const fetchBalance = async () => {
       try {
         setIsLoading(true);
         const response = await apiClient.getMemberBalance(activeOrgId, activeDeptId, user.id);
         setBalance(response.balance);
+        setError(null);
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to load balance";
         setError(message);
@@ -32,6 +36,15 @@ export function MemberDashboard() {
 
     fetchBalance();
   }, [activeOrgId, activeDeptId, user?.id]);
+
+  if (!activeOrgId || !activeDeptId) {
+    return (
+      <EmptyState
+        title="No Department Selected"
+        message="Please select a department from the sidebar to view your contribution balance."
+      />
+    );
+  }
 
   if (isLoading) {
     return (

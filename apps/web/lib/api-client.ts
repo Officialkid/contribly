@@ -10,21 +10,14 @@ export interface AuthResponse {
 export const apiClient = {
   async request<T = unknown>(
     endpoint: string,
-    options?: RequestInit & { orgId?: string; deptId?: string }
+    options?: RequestInit
   ): Promise<T> {
-    const { orgId, deptId, headers, ...rest } = options || {};
+    const { headers, ...rest } = options || {};
 
     const requestHeaders: HeadersInit = {
       "Content-Type": "application/json",
       ...headers,
     };
-
-    if (orgId) {
-      (requestHeaders as Record<string, string>)["x-organization-id"] = orgId;
-    }
-    if (deptId) {
-      (requestHeaders as Record<string, string>)["x-department-id"] = deptId;
-    }
 
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...rest,
@@ -76,7 +69,7 @@ export const apiClient = {
   },
 
   getOrganization(orgId: string) {
-    return this.request(`/api/organizations/${orgId}`, { orgId });
+    return this.request(`/api/organizations/${orgId}`);
   },
 
   // Departments
@@ -84,20 +77,17 @@ export const apiClient = {
     return this.request(`/api/organizations/${orgId}/departments`, {
       method: "POST",
       body: JSON.stringify({ name, monthlyContribution }),
-      orgId,
     });
   },
 
   listDepartments(orgId: string) {
-    return this.request(`/api/organizations/${orgId}/departments`, { orgId });
+    return this.request(`/api/organizations/${orgId}/departments`);
   },
 
   updateDepartment(orgId: string, deptId: string, data: { name?: string; monthlyContribution?: string }) {
     return this.request(`/api/organizations/${orgId}/departments/${deptId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
-      orgId,
-      deptId,
     });
   },
 
@@ -114,20 +104,18 @@ export const apiClient = {
     return this.request(`/api/organizations/${orgId}/payments`, {
       method: "POST",
       body: JSON.stringify({ amount, reference, accountNumber, transactionDate: transactionDate || new Date().toISOString() }),
-      orgId,
     });
   },
 
   listPayments(orgId: string, status?: string) {
     const query = status ? `?status=${status}` : "";
-    return this.request(`/api/organizations/${orgId}/payments${query}`, { orgId });
+    return this.request(`/api/organizations/${orgId}/payments${query}`);
   },
 
   matchPayment(orgId: string, paymentId: string, userId: string, departmentId: string) {
     return this.request(`/api/organizations/${orgId}/payments/${paymentId}/match`, {
       method: "POST",
       body: JSON.stringify({ userId, departmentId }),
-      orgId,
     });
   },
 
@@ -135,22 +123,21 @@ export const apiClient = {
     return this.request(`/api/organizations/${orgId}/payments/${paymentId}/match-by-reference`, {
       method: "POST",
       body: JSON.stringify({ departmentId, paymentReference }),
-      orgId,
     });
   },
 
   getContributionsSummary(orgId: string, year?: number) {
     const query = year ? `?year=${year}` : "";
-    return this.request(`/api/organizations/${orgId}/contributions${query}`, { orgId });
+    return this.request(`/api/organizations/${orgId}/contributions${query}`);
   },
 
   getDepartmentContributions(orgId: string, deptId: string, year?: number) {
     const query = year ? `?year=${year}` : "";
-    return this.request(`/api/organizations/${orgId}/departments/${deptId}/contributions${query}`, { orgId, deptId });
+    return this.request(`/api/organizations/${orgId}/departments/${deptId}/contributions${query}`);
   },
 
   getMemberBalance(orgId: string, deptId: string, userId: string) {
-    return this.request(`/api/organizations/${orgId}/departments/${deptId}/balance?userId=${userId}`, { orgId, deptId });
+    return this.request(`/api/organizations/${orgId}/departments/${deptId}/balance?userId=${userId}`);
   },
 
   // Claims
@@ -158,20 +145,17 @@ export const apiClient = {
     return this.request(`/api/organizations/${orgId}/departments/${deptId}/claims`, {
       method: "POST",
       body: JSON.stringify({ paymentId, transactionCode, details }),
-      orgId,
-      deptId,
     });
   },
 
   listClaims(orgId: string, deptId: string, status?: string) {
     const query = status ? `?status=${status}` : "";
-    return this.request(`/api/organizations/${orgId}/departments/${deptId}/claims${query}`, { orgId, deptId });
+    return this.request(`/api/organizations/${orgId}/departments/${deptId}/claims${query}`);
   },
 
   approveClaim(orgId: string, claimId: string) {
     return this.request(`/api/organizations/${orgId}/claims/${claimId}/approve`, {
       method: "POST",
-      orgId,
     });
   },
 
@@ -179,7 +163,6 @@ export const apiClient = {
     return this.request(`/api/organizations/${orgId}/claims/${claimId}/reject`, {
       method: "POST",
       body: JSON.stringify({ reason }),
-      orgId,
     });
   },
 
@@ -188,19 +171,16 @@ export const apiClient = {
     return this.request(`/api/withdrawals`, {
       method: "POST",
       body: JSON.stringify({ departmentId: deptId, amount, reason }),
-      orgId,
-      deptId,
     });
   },
 
   listWithdrawals(orgId: string) {
-    return this.request(`/api/organizations/${orgId}/withdrawals`, { orgId });
+    return this.request(`/api/organizations/${orgId}/withdrawals`);
   },
 
   approveWithdrawal(orgId: string, withdrawalId: string) {
     return this.request(`/api/withdrawals/${withdrawalId}/approve`, {
       method: "POST",
-      orgId,
     });
   },
 
@@ -208,7 +188,6 @@ export const apiClient = {
     return this.request(`/api/withdrawals/${withdrawalId}/reject`, {
       method: "POST",
       body: JSON.stringify({ reason }),
-      orgId,
     });
   },
 };
