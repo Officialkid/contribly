@@ -83,16 +83,28 @@ router.get(
   "/google/callback",
   passport.authenticate("google", { 
     session: false,
-    failureRedirect: process.env.FRONTEND_URL || "http://localhost:3000",
+    failureRedirect: `${process.env.FRONTEND_URL || "http://localhost:3000"}?error=google_auth_failed`,
   }),
   (req: AuthRequest, res: Response) => {
     try {
+      console.log("🔵 Google OAuth callback handler triggered");
+      
       // Passport attaches user data to req.user
       const userData = req.user as any;
       
+      console.log("🔵 User data from passport:", {
+        hasUser: !!userData,
+        hasToken: !!userData?.token,
+        userId: userData?.user?.id,
+        organizationId: userData?.organizationId
+      });
+
       if (!userData || !userData.token) {
+        console.error("❌ No user data or token from passport");
         return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:3000"}?error=auth_failed`);
       }
+
+      console.log("🔵 Setting cookie for user:", userData.user?.id);
 
       // Set HTTP-only cookie
       res.cookie("token", userData.token, {
@@ -103,15 +115,22 @@ router.get(
       });
 
       // Redirect to frontend callback page with success
-      const redirectUrl = new URL("/auth/callback", process.env.FRONTEND_URL || "http://localhost:3000");
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      const redirectUrl = new URL("/auth/callback", frontendUrl);
+      
       if (userData.organizationId) {
         redirectUrl.searchParams.set("organizationId", userData.organizationId);
       }
       
+      console.log("✅ Redirecting to:", redirectUrl.toString());
       return res.redirect(redirectUrl.toString());
     } catch (error) {
-      console.error("Google OAuth callback error:", error);
-      return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:3000"}?error=auth_failed`);
+      console.error("❌ Google OAuth callback error:", error);
+      console.error("❌ Error details:", error instanceof Error ? error.message : String(error));
+      console.error("❌ Stack trace:", error instanceof Error ? error.stack : "No stack trace");
+      
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      return res.redirect(`${frontendUrl}?error=callback_failed`);
     }
   }
 );
