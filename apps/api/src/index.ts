@@ -69,17 +69,27 @@ app.get("/api", (req, res) => {
 // Try to load routes if database is available (ESM-friendly dynamic import)
 void (async () => {
   try {
+    console.log("Loading routes...");
     const authRoutes = (await import("./routes/auth.routes.js")).default;
+    console.log("✓ Auth routes loaded");
+    
     const organizationRoutes = (await import("./routes/organization.routes.js")).default;
+    console.log("✓ Organization routes loaded");
+    
     const paymentRoutes = (await import("./routes/payment.routes.js")).default;
+    console.log("✓ Payment routes loaded");
+    
     const claimRoutes = (await import("./routes/claim.routes.js")).default;
+    console.log("✓ Claim routes loaded");
 
     app.use(authRoutes);
     app.use(organizationRoutes);
     app.use(paymentRoutes);
     app.use(claimRoutes);
+    console.log("✓ All routes registered successfully");
   } catch (err) {
-    console.error("Failed to load routes (likely Prisma not initialized):", err);
+    console.error("❌ Failed to load routes:", err instanceof Error ? err.message : err);
+    console.error("Full error:", err);
   }
 })();
 
