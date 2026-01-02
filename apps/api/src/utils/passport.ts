@@ -5,6 +5,11 @@ import { generateToken } from "./jwt.js";
 
 const prisma = new PrismaClient();
 
+// DEBUG: Log the callback URL being used
+console.log("🔴 GOOGLE_CALLBACK_URL IN USE:", process.env.GOOGLE_CALLBACK_URL);
+console.log("🔴 GOOGLE_CLIENT_ID IN USE:", process.env.GOOGLE_CLIENT_ID ? "SET" : "NOT SET");
+console.log("🔴 NODE_ENV:", process.env.NODE_ENV);
+
 // Configure Google OAuth Strategy
 passport.use(
   new GoogleStrategy(
