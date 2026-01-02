@@ -65,27 +65,16 @@ export default function AcceptInvitePage() {
     setRegisterLoading(true);
 
     try {
-      const response = (await apiClient.register(
+      const fullName = `${registerData.firstName} ${registerData.lastName}`.trim();
+      const inviteResponse = (await apiClient.acceptInvite(
+        code,
         registerData.email,
         registerData.password,
-        registerData.firstName || registerData.lastName
-          ? `${registerData.firstName || ""} ${registerData.lastName || ""}`.trim()
-          : undefined
+        fullName
       )) as any;
 
-      // Now accept the invite
-      if (response?.user) {
-        const inviteResponse = (await apiClient.acceptInvite(
-          code,
-          registerData.email,
-          registerData.password
-        )) as any;
-
-        if (inviteResponse?.user) {
-          router.push(
-            `/orgs/${inviteResponse.user.organizationId}?welcome=true`
-          );
-        }
+      if (inviteResponse?.user) {
+        router.push(`/orgs/${inviteResponse.user.organizationId}?welcome=true`);
       }
     } catch (err: unknown) {
       const message = (err as { message?: string }).message || String(err) || "Registration failed";

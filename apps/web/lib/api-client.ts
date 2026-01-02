@@ -41,10 +41,10 @@ export const apiClient = {
   },
 
   // Auth
-  async register(organizationName: string, email: string, password: string) {
+  async register(payload: { email: string; password: string; name: string; organizationName: string }) {
     return this.request<AuthResponse>("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ organizationName, email, password }),
+      body: JSON.stringify(payload),
     });
   },
 

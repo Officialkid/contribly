@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     organizationName: "",
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -37,11 +38,12 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await apiClient.register(
-        formData.organizationName,
-        formData.email,
-        formData.password
-      );
+      const response = await apiClient.register({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        organizationName: formData.organizationName,
+      });
       if (response.user && response.user.organizationId) {
         router.push(`/orgs/${response.user.organizationId}`);
       }
@@ -87,6 +89,28 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       className="w-full pl-12 pr-4 py-3 bg-background border-2 border-border rounded-button text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 hover:border-primary/50 transition-all duration-300"
                       placeholder="Your Organization"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-text-primary mb-2">Your Name</label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors duration-300">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A6 6 0 1115 11" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12v.01" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a7 7 0 0110 0" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="w-full pl-12 pr-4 py-3 bg-background border-2 border-border rounded-button text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 hover:border-primary/50 transition-all duration-300"
+                      placeholder="Your Name"
                       required
                     />
                   </div>

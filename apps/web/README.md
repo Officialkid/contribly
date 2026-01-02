@@ -126,7 +126,7 @@ import { apiClient } from '@/lib/api-client';
 
 // Authentication
 await apiClient.login(email, password);
-await apiClient.register({ email, password, firstName, lastName });
+await apiClient.register({ email, password, name, organizationName });
 await apiClient.logout();
 
 // Organizations
