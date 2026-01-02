@@ -6,18 +6,19 @@ import cors from "cors";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS configuration for Render deployment
-// Accepts local dev URLs and production Render frontend URL
+// CORS configuration - allows local dev and production frontends
 const allowedOrigins = [
-  "http://localhost:3000",        // Local dev
-  "http://localhost:3001",        // Local API dev
-  process.env.FRONTEND_URL,       // Render production (e.g., https://contribly-web.onrender.com)
+  "http://localhost:3000",                    // Local dev
+  "http://localhost:3001",                    // Local API dev
+  "https://contribly-web.vercel.app",         // Vercel production
+  "https://contribly-web.onrender.com",       // Render production (if used later)
+  process.env.FRONTEND_URL,                   // Any custom frontend URL from env
 ].filter(Boolean);
 
 // Middleware
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, Postman, curl)
+    // Allow requests with no origin (like mobile apps, Postman, curl, server-to-server)
     if (!origin) {
       return callback(null, true);
     }
