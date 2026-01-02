@@ -7,6 +7,9 @@ import passport from "./utils/passport.js";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy so HTTPS redirects are respected behind Render/other proxies
+app.set("trust proxy", 1);
+
 // CORS configuration - allows local dev and production frontends
 const allowedOrigins = [
   "http://localhost:3000",                    // Local dev
