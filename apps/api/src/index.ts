@@ -6,25 +6,32 @@ import cors from "cors";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS configuration - allow both localhost and production URLs
+// CORS configuration for Render deployment
+// Accepts local dev URLs and production Render frontend URL
 const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "https://contribly-web.vercel.app",
-  process.env.FRONTEND_URL,
+  "http://localhost:3000",        // Local dev
+  "http://localhost:3001",        // Local API dev
+  process.env.FRONTEND_URL,       // Render production (e.g., https://contribly-web.onrender.com)
 ].filter(Boolean);
 
 // Middleware
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps, Postman, curl)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("CORS not allowed"));
+      callback(new Error(`CORS policy: origin ${origin} not allowed`));
     }
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-organization-id", "x-department-id"],
 }));
 app.use(express.json());
 app.use(cookieParser());
