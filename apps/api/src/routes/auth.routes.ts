@@ -108,7 +108,6 @@ router.get("/auth/me", authMiddleware, async (req: AuthRequest, res: Response) =
       user: {
         id: req.user?.userId,
         email: req.user?.email,
-        organizations: req.user?.organizations,
       },
     });
   } catch (error) {

@@ -1,7 +1,6 @@
-import type { NodemailerType } from 'nodemailer';
-
 // For MVP, use console logging. Upgrade to real email service in production
-const transporter: NodemailerType | null = null;
+// import nodemailer from 'nodemailer';
+const transporter = null;
 
 export async function sendOTPEmail(email: string, otp: string): Promise<boolean> {
   try {
