@@ -37,7 +37,7 @@ passport.use(
 
         if (!email) {
           console.error("❌ No email found in Google profile");
-          return done(new Error("No email found in Google profile"), undefined);
+          return done(null, false, { message: "no_email_in_profile" });
         }
 
         console.log("🔵 Looking up user by email:", email);
@@ -142,7 +142,8 @@ passport.use(
         console.error("❌ Google OAuth Strategy Error:", error);
         console.error("❌ Error details:", error instanceof Error ? error.message : String(error));
         console.error("❌ Stack trace:", error instanceof Error ? error.stack : "No stack trace");
-        return done(error as Error, undefined);
+        // Avoid throwing to Express; fail gracefully so failureRedirect is used
+        return done(null, false, { message: "google_oauth_failed" });
       }
     }
   )
