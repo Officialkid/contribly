@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useOrg } from "@/lib/org-context";
+import { apiClient } from "@/lib/api-client";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -12,7 +13,9 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, activeOrgId, activeOrg, activeDeptId, departments, setActiveOrgId, setActiveDeptId } = useOrg();
+  const mobileDrawerRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const { user, activeOrgId, activeOrg, activeDeptId, departments, setActiveOrgId, setActiveDeptId, reset } = useOrg();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -53,33 +56,51 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       ),
       show: isChiefAdmin,
     },
-    {
-      name: "Members",
-      href: `/orgs/${activeOrgId}/members`,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ),
-      show: isChiefAdmin,
-    },
-    {
-      name: "Settings",
-      href: `/orgs/${activeOrgId}/settings`,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
-      show: isChiefAdmin,
-    },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await apiClient.logout();
+    } catch (_) {
+      // ignore logout errors
+    }
     localStorage.clear();
-    router.push("/");
+    reset();
+    router.push("/login");
   };
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const drawer = mobileDrawerRef.current;
+    const closeBtn = closeButtonRef.current;
+    closeBtn?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+
+      if (event.key === "Tab" && drawer) {
+        const focusable = drawer.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileMenuOpen]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -174,17 +195,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <>
               <div className="flex items-center justify-between mb-3">
                 <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Departments</label>
-                {isChiefAdmin && (
-                  <Link
-                    href={`/orgs/${activeOrgId}/departments/new`}
-                    className="text-primary hover:text-primary-dark transition-colors"
-                    title="Add Department"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </Link>
-                )}
               </div>
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {departments.map((dept) => (
@@ -324,17 +334,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="border-t border-border p-4">
               <div className="flex items-center justify-between mb-3">
                 <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Departments</label>
-                {isChiefAdmin && (
-                  <Link
-                    href={`/orgs/${activeOrgId}/departments/new`}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-primary hover:text-primary-dark transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </Link>
-                )}
               </div>
               <div className="space-y-1">
                 {departments.map((dept) => (

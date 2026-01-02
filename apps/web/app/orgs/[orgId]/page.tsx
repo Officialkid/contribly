@@ -10,15 +10,24 @@ import { Loading } from "@/components/ui";
 export default function DashboardPage() {
   const { user, activeOrg, activeDept } = useOrg();
 
-  if (!user || !activeOrg) {
-    return <Loading message="Loading organization..." />;
+  if (!user) {
+    return <Loading message="Loading account..." />;
+  }
+
+  if (!activeOrg) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-6 text-text-primary">
+        <p className="font-semibold">No organization yet.</p>
+        <p className="text-sm text-text-muted">Create one or accept an invite to continue.</p>
+      </div>
+    );
   }
 
   // Route to appropriate dashboard based on role
-  const isChiefAdmin = user.role === "CHIEF_ADMIN";
-  const isDeptAdmin =
-    user.role === "ADMIN" && activeDept && user.departmentId === activeDept.id;
-  const isMember = user.role === "MEMBER" || (user.role === "ADMIN" && !isDeptAdmin);
+  const role = user.role ?? "MEMBER";
+  const isChiefAdmin = role === "CHIEF_ADMIN";
+  const isDeptAdmin = role === "ADMIN" && activeDept && user.departmentId === activeDept.id;
+  const isMember = role === "MEMBER" || (role === "ADMIN" && !isDeptAdmin);
 
   return (
     <div className="space-y-8">

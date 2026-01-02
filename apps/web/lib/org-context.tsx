@@ -15,6 +15,7 @@ interface OrgContextType {
   isLoading: boolean;
   error: string | null;
   refetchOrgs: () => Promise<void>;
+  reset: () => void;
 }
 
 const OrgContext = createContext<OrgContextType | undefined>(undefined);
@@ -45,6 +46,8 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
           : [];
 
         const organizationId = (rawUser as any).organizationId || organizations[0]?.id || null;
+        const role = (rawUser as any).role;
+        const departmentIdFromUser = (rawUser as any).departmentId ?? null;
 
         if (organizationId && organizations.length === 0) {
           try {
@@ -59,10 +62,13 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        setUser({ ...(rawUser as any), organizations });
+        setUser({ ...(rawUser as any), role, departmentId: departmentIdFromUser, organizations });
 
         if (organizationId) {
           setActiveOrgId(organizationId);
+        }
+        if (departmentIdFromUser) {
+          setActiveDeptId(departmentIdFromUser);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load user");
@@ -101,6 +107,14 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   const handleSetActiveOrgId = (id: string) => {
     setActiveOrgId(id);
     setActiveDeptId(null);
+  };
+
+  const reset = () => {
+    setUser(null);
+    setActiveOrgId(null);
+    setActiveDeptId(null);
+    setDepartments([]);
+    setError(null);
   };
 
   const refetchOrgs = async () => {
@@ -142,6 +156,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         error,
         refetchOrgs,
+        reset,
       }}
     >
       {children}

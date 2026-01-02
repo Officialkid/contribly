@@ -37,7 +37,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-organization-id", "x-department-id"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -88,10 +88,14 @@ void (async () => {
     const claimRoutes = (await import("./routes/claim.routes.js")).default;
     console.log("✓ Claim routes loaded");
 
+    const inviteRoutes = (await import("./routes/invite.routes.js")).default;
+    console.log("✓ Invite routes loaded");
+
     app.use("/api/auth", authRoutes);
     app.use("/api", organizationRoutes);
     app.use("/api", paymentRoutes);
     app.use("/api", claimRoutes);
+    app.use("/api", inviteRoutes);
     console.log("✓ All routes registered successfully");
   } catch (err) {
     console.error("❌ Failed to load routes:", err instanceof Error ? err.message : err);

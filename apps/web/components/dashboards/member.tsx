@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useOrg } from "@/lib/org-context";
 import { apiClient } from "@/lib/api-client";
 import { CarryForward } from "@/lib/types";
-import { Card, Badge, Loading, Error, EmptyState } from "@/components/ui";
+import { Card, Badge, Loading, Error, EmptyState, Skeleton, Toast } from "@/components/ui";
 
 export function MemberDashboard() {
   const { user, activeOrgId, activeDeptId } = useOrg();
   const [balance, setBalance] = useState<CarryForward | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeOrgId || !activeDeptId || !user) return;
@@ -21,7 +22,9 @@ export function MemberDashboard() {
         const response = await apiClient.getMemberBalance(activeOrgId, activeDeptId, user.id);
         setBalance(response.balance);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load balance");
+        const message = err instanceof Error ? err.message : "Failed to load balance";
+        setError(message);
+        setToast(message);
       } finally {
         setIsLoading(false);
       }
@@ -30,7 +33,31 @@ export function MemberDashboard() {
     fetchBalance();
   }, [activeOrgId, activeDeptId, user?.id]);
 
-  if (isLoading) return <Loading message="Loading your balance..." />;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1,2,3].map((i) => (
+            <div key={i} className="card p-6 space-y-3">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-8 w-24" />
+            </div>
+          ))}
+        </div>
+        <div className="card p-6 space-y-3">
+          <Skeleton className="h-5 w-48" />
+          {[1,2,3].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (error) return <Error message={error} />;
   if (!balance) return <EmptyState title="No Data" message="No contribution data available" />;
 
@@ -138,6 +165,8 @@ export function MemberDashboard() {
           View Claims
         </a>
       </div>
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

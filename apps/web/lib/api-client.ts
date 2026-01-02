@@ -60,7 +60,7 @@ export const apiClient = {
   },
 
   async getMe() {
-    return this.request<{ success: boolean; user: { id: string; email: string; name?: string | null; organizationId?: string } }>("/api/auth/me");
+    return this.request<{ success: boolean; user: { id: string; email: string; name?: string | null; organizationId?: string | null; role?: "CHIEF_ADMIN" | "ADMIN" | "MEMBER"; departmentId?: string | null } }>("/api/auth/me");
   },
 
   // Organizations

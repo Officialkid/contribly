@@ -1,5 +1,6 @@
 import { Router, Response } from "express";
 import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
+import { z } from "zod";
 import {
   organizationContextMiddleware,
   departmentContextMiddleware,
@@ -25,21 +26,29 @@ import {
 const router = Router();
 
 // Record new payment (Chief Admin only)
+const createPaymentSchema = z.object({
+  amount: z.number().positive("amount must be greater than zero"),
+  reference: z.string().min(1).optional(),
+  accountNumber: z.string().min(1).optional(),
+  transactionDate: z.string().datetime({ message: "transactionDate must be an ISO datetime" }),
+});
+
 router.post(
   "/organizations/:organizationId/payments",
   authMiddleware,
   organizationContextMiddleware,
   requireChiefAdmin,
   async (req: AuthRequest, res: Response) => {
-    const { amount, reference, accountNumber, transactionDate } = req.body;
-
-    if (!amount || !transactionDate) {
-      return res.status(400).json({ success: false, error: "amount and transactionDate are required" });
+    const parsed = createPaymentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: parsed.error.errors[0]?.message || "Invalid payload" });
     }
+
+    const { amount, reference, accountNumber, transactionDate } = parsed.data;
 
     const result = await recordPayment(
       req.organizationContext!.organizationId,
-      amount,
+      amount.toString(),
       reference || null,
       accountNumber || null,
       new Date(transactionDate)

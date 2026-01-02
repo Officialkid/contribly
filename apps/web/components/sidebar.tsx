@@ -4,9 +4,10 @@ import React from "react";
 import Link from "next/link";
 import { useOrg } from "@/lib/org-context";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api-client";
 
 export function Sidebar() {
-  const { user, activeOrgId, activeOrg, activeDeptId, departments, setActiveOrgId, setActiveDeptId } = useOrg();
+  const { user, activeOrgId, activeOrg, activeDeptId, departments, setActiveOrgId, setActiveDeptId, reset } = useOrg();
   const router = useRouter();
 
   if (!user) return null;
@@ -59,14 +60,7 @@ export function Sidebar() {
           ))}
         </nav>
 
-        {isChiefAdmin && (
-          <Link
-            href={`/orgs/${activeOrgId}/departments/new`}
-            className="block mt-4 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 rounded transition"
-          >
-            + New Department
-          </Link>
-        )}
+          {/* No create department route available; hide link to avoid 404 */}
       </div>
 
       {/* Navigation Links */}
@@ -85,14 +79,18 @@ export function Sidebar() {
           </>
         )}
         <button
-          onClick={() => {
-            localStorage.clear();
-            router.push("/login");
-          }}
-          className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 rounded transition"
-        >
-          Logout
-        </button>
+            onClick={async () => {
+              try {
+                await apiClient.logout();
+              } catch (_) {}
+              localStorage.clear();
+              reset();
+              router.push("/login");
+            }}
+            className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 rounded transition"
+          >
+            Logout
+          </button>
       </div>
     </aside>
   );

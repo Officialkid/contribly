@@ -1,5 +1,6 @@
 import { Router, Response } from "express";
 import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
+import { z } from "zod";
 import {
   organizationContextMiddleware,
   departmentContextMiddleware,
@@ -23,13 +24,17 @@ import { createInviteLink } from "../services/invite.service.js";
 const router = Router();
 
 // Create organization (caller becomes CHIEF_ADMIN)
+const createOrgSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+});
+
 router.post("/organizations", authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { name } = req.body;
-  if (!name) {
-    return res.status(400).json({ success: false, error: "Name is required" });
+  const parsed = createOrgSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: parsed.error.errors[0]?.message || "Invalid payload" });
   }
 
-  const result = await createOrganization(req.user!.userId, name);
+  const result = await createOrganization(req.user!.userId, parsed.data.name);
   return res.status(201).json(result);
 });
 
@@ -165,14 +170,23 @@ router.post(
   departmentContextMiddleware,
   requireDepartmentAdmin,
   async (req: AuthRequest, res: Response) => {
-    const { expiresAt, maxUses } = req.body;
-    const expiresDate = expiresAt ? new Date(expiresAt) : null;
+    const inviteSchema = z.object({
+      expiresAt: z.string().datetime().optional(),
+      maxUses: z.number().int().positive().optional(),
+    });
+
+    const parsed = inviteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: parsed.error.errors[0]?.message || "Invalid payload" });
+    }
+
+    const expiresDate = parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null;
 
     const result = await createInviteLink(
       req.departmentContext!.departmentId,
       req.user!.userId,
       expiresDate,
-      maxUses ?? null
+      parsed.data.maxUses ?? null
     );
 
     return res.status(201).json(result);

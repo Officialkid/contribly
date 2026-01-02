@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { OrgProvider } from "@/lib/org-context";
-import { Sidebar } from "@/components/sidebar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,13 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-50">
+      <body className="bg-background text-text-primary">
         <OrgProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 p-8">
-              {children}
-            </main>
+          <div className="min-h-screen">
+            {children}
           </div>
         </OrgProvider>
       </body>

@@ -3,15 +3,15 @@ import { PrismaClient } from "@prisma/client";
 import { AuthRequest, OrganizationContext, DepartmentContext } from "./auth.middleware.js";
 
 const prisma = new PrismaClient();
-const ORG_HEADER = "x-organization-id";
-const DEPT_HEADER = "x-department-id";
 
 function extractOrganizationId(req: AuthRequest): string | undefined {
-  return (req.headers[ORG_HEADER] as string) || (req.params as any)?.organizationId || (req.params as any)?.orgId;
+  // Trust only route params (or common aliases) to scope organization; headers are not trusted.
+  return (req.params as any)?.organizationId || (req.params as any)?.orgId;
 }
 
 function extractDepartmentId(req: AuthRequest): string | undefined {
-  return (req.headers[DEPT_HEADER] as string) || (req.params as any)?.departmentId || (req.params as any)?.deptId;
+  // Trust only route params (or common aliases) to scope department; headers are not trusted.
+  return (req.params as any)?.departmentId || (req.params as any)?.deptId;
 }
 
 export async function organizationContextMiddleware(req: AuthRequest, res: Response, next: NextFunction) {

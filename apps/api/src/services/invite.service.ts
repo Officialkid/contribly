@@ -159,6 +159,6 @@ export async function acceptInvite(params: {
     organizationId: invite.department.organizationId,
     departmentId: invite.department.id,
     token: issuedToken,
-    user: { id: userId, email: userEmail },
+    user: { id: userId, email: userEmail, organizationId: invite.department.organizationId },
   };
 }

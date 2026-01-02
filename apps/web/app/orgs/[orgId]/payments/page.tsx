@@ -66,8 +66,17 @@ export default function PaymentsPage() {
 
   const isChiefAdmin = user?.role === "CHIEF_ADMIN";
 
+  if (!user) {
+    return <Loading message="Loading account..." />;
+  }
+
   if (!activeOrgId) {
-    return <Loading message="Loading organization..." />;
+    return (
+      <div className="rounded-lg border border-border bg-card p-6 text-text-primary">
+        <p className="font-semibold">No organization yet.</p>
+        <p className="text-sm text-text-muted">Create one or accept an invite to manage payments.</p>
+      </div>
+    );
   }
 
   return (

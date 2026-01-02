@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useOrg } from "@/lib/org-context";
 import { apiClient } from "@/lib/api-client";
 import { ContributionsSummary } from "@/lib/types";
-import { Card, Table, Badge, Loading, Error, EmptyState } from "@/components/ui";
+import { Card, Table, Badge, Loading, Error, EmptyState, Skeleton, Toast } from "@/components/ui";
 
 export function ChiefAdminDashboard() {
   const { activeOrgId } = useOrg();
@@ -12,6 +12,7 @@ export function ChiefAdminDashboard() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeOrgId) return;
@@ -22,7 +23,9 @@ export function ChiefAdminDashboard() {
         const response = await apiClient.getContributionsSummary(activeOrgId, year);
         setSummary(response.summary);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load summary");
+        const message = err instanceof Error ? err.message : "Failed to load summary";
+        setError(message);
+        setToast(message);
       } finally {
         setIsLoading(false);
       }
@@ -31,7 +34,38 @@ export function ChiefAdminDashboard() {
     fetchSummary();
   }, [activeOrgId, year]);
 
-  if (isLoading) return <Loading message="Loading contribution summary..." />;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="flex items-center gap-3 bg-card border border-border rounded-button p-2 shadow-soft">
+            <Skeleton className="h-10 w-16" />
+            <Skeleton className="h-10 w-16" />
+            <Skeleton className="h-10 w-16" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1,2,3].map((i) => (
+            <div key={i} className="card p-6 space-y-3">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+          ))}
+        </div>
+        <div className="card p-6 space-y-3">
+          <Skeleton className="h-5 w-48" />
+          {[1,2,3].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (error) return <Error message={error} />;
   if (!summary) return <EmptyState title="No Data" message="No contribution data available" />;
 
@@ -156,6 +190,8 @@ export function ChiefAdminDashboard() {
           </div>
         ))}
       </div>
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

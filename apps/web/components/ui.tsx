@@ -17,6 +17,10 @@ export function Card({ title, children, className }: CardProps) {
   );
 }
 
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse rounded-md bg-slate-200/80 ${className}`} />;
+}
+
 interface TableProps {
   headers: string[];
   rows: React.ReactNode[][];
@@ -127,6 +131,26 @@ export function EmptyState({ title, message, action }: EmptyStateProps) {
           {action.label}
         </a>
       )}
+    </div>
+  );
+}
+
+interface ToastProps {
+  message: string;
+  onClose: () => void;
+}
+
+export function Toast({ message, onClose }: ToastProps) {
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-lg bg-slate-900 text-white px-4 py-3 shadow-xl">
+      <span className="text-sm font-semibold">{message}</span>
+      <button
+        onClick={onClose}
+        className="text-white/80 hover:text-white focus:outline-none"
+        aria-label="Close notification"
+      >
+        ×
+      </button>
     </div>
   );
 }

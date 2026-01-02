@@ -170,11 +170,44 @@ router.get("/me", authMiddleware, async (req: AuthRequest, res: Response) => {
       },
     });
 
+    const organizationId = user?.organizationMembers?.[0]?.organizationId || null;
+    const organizationRole = user?.organizationMembers?.[0]?.role || null;
+
+    let departmentId: string | null = null;
+    let departmentRole: "ADMIN" | "MEMBER" | null = null;
+
+    if (organizationId) {
+      const deptMembership = await prisma.departmentMember.findFirst({
+        where: {
+          userId,
+          department: {
+            organizationId,
+          },
+        },
+        select: {
+          departmentId: true,
+          role: true,
+        },
+      });
+
+      departmentId = deptMembership?.departmentId || null;
+      departmentRole = deptMembership?.role || null;
+    }
+
     await prisma.$disconnect();
 
     if (!user) {
       return res.status(404).json({ success: false, error: "User not found" });
     }
+
+    const role: "CHIEF_ADMIN" | "ADMIN" | "MEMBER" | null =
+      organizationRole === "CHIEF_ADMIN"
+        ? "CHIEF_ADMIN"
+        : departmentRole === "ADMIN"
+          ? "ADMIN"
+          : organizationId
+            ? "MEMBER"
+            : null;
 
     return res.json({
       success: true,
@@ -182,7 +215,9 @@ router.get("/me", authMiddleware, async (req: AuthRequest, res: Response) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        organizationId: user.organizationMembers[0]?.organizationId,
+        organizationId,
+        role: role || undefined,
+        departmentId: departmentId || undefined,
       },
     });
   } catch (error) {

@@ -1,5 +1,6 @@
 import { Router, Response } from "express";
 import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
+import { z } from "zod";
 import {
   organizationContextMiddleware,
   departmentContextMiddleware,
@@ -16,6 +17,12 @@ import {
 const router = Router();
 
 // Submit payment claim (any department member)
+const createClaimSchema = z.object({
+  paymentId: z.string().min(1, "paymentId is required"),
+  transactionCode: z.string().min(1, "transactionCode is required"),
+  details: z.string().optional(),
+});
+
 router.post(
   "/organizations/:organizationId/departments/:departmentId/claims",
   authMiddleware,
@@ -23,11 +30,12 @@ router.post(
   departmentContextMiddleware,
   requireDepartmentMember,
   async (req: AuthRequest, res: Response) => {
-    const { paymentId, transactionCode, details } = req.body;
-
-    if (!paymentId || !transactionCode) {
-      return res.status(400).json({ success: false, error: "paymentId and transactionCode are required" });
+    const parsed = createClaimSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: parsed.error.errors[0]?.message || "Invalid payload" });
     }
+
+    const { paymentId, transactionCode, details } = parsed.data;
 
     const result = await submitPaymentClaim(
       paymentId,

@@ -73,8 +73,12 @@ export default function AcceptInvitePage() {
         fullName
       )) as any;
 
-      if (inviteResponse?.user) {
-        router.push(`/orgs/${inviteResponse.user.organizationId}?welcome=true`);
+      const orgId = inviteResponse?.organizationId || inviteResponse?.user?.organizationId;
+
+      if (orgId) {
+        router.push(`/orgs/${orgId}?welcome=true`);
+      } else {
+        setError("Invitation accepted, but organization could not be determined.");
       }
     } catch (err: unknown) {
       const message = (err as { message?: string }).message || String(err) || "Registration failed";
@@ -99,9 +103,12 @@ export default function AcceptInvitePage() {
       if (loginResponse?.user) {
         // Then accept invite
         const inviteResponse = (await apiClient.acceptInvite(code)) as any;
+        const orgId = inviteResponse?.organizationId || inviteResponse?.user?.organizationId;
 
-        if (inviteResponse?.user) {
-          router.push(`/orgs/${inviteResponse.user.organizationId}`);
+        if (orgId) {
+          router.push(`/orgs/${orgId}`);
+        } else {
+          setError("Invitation accepted, but organization could not be determined.");
         }
       }
     } catch (err: unknown) {
