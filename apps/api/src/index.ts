@@ -14,6 +14,15 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// Root endpoint
+app.get("/", (req, res) => {
+  res.json({ 
+    message: "Contribly API v1.0.0",
+    status: "running",
+    docs: "/api"
+  });
+});
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Contribly API is running" });
