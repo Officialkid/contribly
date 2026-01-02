@@ -3,8 +3,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 // Type helpers
 export interface AuthResponse {
   success: boolean;
-  token?: string;
-  user?: { id: string; email: string; name: string | null };
+  user?: { id: string; email: string; name: string | null; organizationId?: string };
   error?: string;
 }
 
@@ -42,11 +41,10 @@ export const apiClient = {
   },
 
   // Auth
-  async register(data: { email: string; password: string; firstName?: string; lastName?: string }) {
-    const name = [data.firstName, data.lastName].filter(Boolean).join(" ") || undefined;
+  async register(organizationName: string, email: string, password: string) {
     return this.request<AuthResponse>("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email: data.email, password: data.password, name }),
+      body: JSON.stringify({ organizationName, email, password }),
     });
   },
 
@@ -62,7 +60,7 @@ export const apiClient = {
   },
 
   async getMe() {
-    return this.request<{ id: string; email: string; name: string | null }>("/api/auth/me");
+    return this.request<{ success: boolean; user: { id: string; email: string; name?: string | null; organizationId?: string } }>("/api/auth/me");
   },
 
   // Organizations

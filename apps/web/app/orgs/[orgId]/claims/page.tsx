@@ -17,13 +17,18 @@ export default function ClaimsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Payment Claims</h1>
-        <p className="text-slate-600 mt-1">
-          {isChiefAdminOrDeptAdmin
-            ? "Review and approve payment claims"
-            : "Submit and track your payment claims"}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-text-primary">Payment Claims</h1>
+          <p className="text-text-muted mt-1">
+            {isChiefAdminOrDeptAdmin
+              ? "Review and approve payment claims"
+              : "Submit and track your payment claims"}
+          </p>
+        </div>
+        <span className={`badge ${isChiefAdminOrDeptAdmin ? 'badge-accent' : 'badge-primary'}`}>
+          {isChiefAdminOrDeptAdmin ? "Administrator" : "Member"}
+        </span>
       </div>
 
       <ClaimsView showApprovalActions={isChiefAdminOrDeptAdmin} />

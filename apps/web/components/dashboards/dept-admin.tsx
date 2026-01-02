@@ -36,64 +36,121 @@ export function DeptAdminDashboard() {
   if (!summary) return <EmptyState title="No Data" message="No contribution data available" />;
 
   return (
-    <div className="space-y-6">
-      {/* Year Selector */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setYear(year - 1)}
-          className="px-4 py-2 bg-slate-200 text-slate-900 rounded hover:bg-slate-300 transition text-sm"
-        >
-          ← {year - 1}
-        </button>
-        <span className="px-4 py-2 text-slate-700 font-semibold">{year}</span>
-        <button
-          onClick={() => setYear(year + 1)}
-          className="px-4 py-2 bg-slate-200 text-slate-900 rounded hover:bg-slate-300 transition text-sm"
-        >
-          {year + 1} →
-        </button>
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-text-primary">{summary.name}</h1>
+          <p className="text-text-muted mt-1">Department administration for {year}</p>
+        </div>
+        {/* Year Selector */}
+        <div className="flex items-center gap-3 bg-card border border-border rounded-button p-1 shadow-soft">
+          <button
+            onClick={() => setYear(year - 1)}
+            className="px-4 py-2 rounded-button text-sm font-semibold text-text-muted hover:bg-primary/5 hover:text-primary transition-all"
+          >
+            ← {year - 1}
+          </button>
+          <span className="px-4 py-2 text-primary font-bold">{year}</span>
+          <button
+            onClick={() => setYear(year + 1)}
+            className="px-4 py-2 rounded-button text-sm font-semibold text-text-muted hover:bg-primary/5 hover:text-primary transition-all"
+          >
+            {year + 1} →
+          </button>
+        </div>
       </div>
 
-      {/* Department Header */}
-      <Card title={summary.name}>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-slate-600">Monthly Amount</p>
-            <p className="text-2xl font-bold text-slate-900">${(parseFloat(summary.monthlyAmount || "0") / 100).toFixed(2)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-600">Total Members</p>
-            <p className="text-2xl font-bold text-slate-900">{summary.members.length}</p>
+      {/* Department Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-text-muted uppercase tracking-wide">Monthly Amount</p>
+              <p className="text-4xl font-bold text-text-primary mt-2">₦{(parseFloat(summary.monthlyAmount || "0") / 100).toFixed(2)}</p>
+            </div>
+            <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center">
+              <svg className="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
           </div>
         </div>
-      </Card>
+        <div className="card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-text-muted uppercase tracking-wide">Total Members</p>
+              <p className="text-4xl font-bold text-text-primary mt-2">{summary.members.length}</p>
+            </div>
+            <div className="w-14 h-14 bg-accent/10 rounded-xl flex items-center justify-center">
+              <svg className="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Member Balances */}
-      <Card title="Member Balances">
-        <Table
-          headers={["Member", "Payment Ref", "Role", "Months Cleared", "Pending ($)"]}
-          rows={summary.members.map((m) => [
-            m.user.name || m.user.email,
-            m.paymentReference,
-            <Badge key="role" status={m.role} />,
-            m.balance?.monthsCleared.toString() || "-",
-            m.balance ? `${(m.balance.carryForward).toFixed(2)}` : "-",
-          ])}
-        />
-      </Card>
+      <div className="card">
+        <div className="card-header flex items-center justify-between">
+          <h2 className="text-xl font-bold text-text-primary">Member Balances</h2>
+          <span className="badge badge-primary">{summary.members.length} Members</span>
+        </div>
+        <div className="card-body">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 text-sm font-bold text-text-primary uppercase tracking-wide">Member</th>
+                  <th className="text-left py-3 px-4 text-sm font-bold text-text-primary uppercase tracking-wide">Payment Ref</th>
+                  <th className="text-left py-3 px-4 text-sm font-bold text-text-primary uppercase tracking-wide">Role</th>
+                  <th className="text-right py-3 px-4 text-sm font-bold text-text-primary uppercase tracking-wide">Cleared</th>
+                  <th className="text-right py-3 px-4 text-sm font-bold text-text-primary uppercase tracking-wide">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.members.map((m, idx) => (
+                  <tr key={idx} className="border-b border-border hover:bg-background transition-colors">
+                    <td className="py-3 px-4 text-sm font-medium text-text-primary">{m.user.name || m.user.email}</td>
+                    <td className="py-3 px-4 text-sm text-text-muted font-mono">{m.paymentReference}</td>
+                    <td className="py-3 px-4">
+                      <span className={`badge ${m.role === 'ADMIN' ? 'badge-accent' : 'badge-primary'}`}>
+                        {m.role}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-right font-semibold text-accent">
+                      {m.balance?.monthsCleared || 0} months
+                    </td>
+                    <td className="py-3 px-4 text-sm text-right font-bold text-text-primary">
+                      {m.balance ? `₦${(m.balance.carryForward).toFixed(2)}` : "₦0.00"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
       {/* Quick Actions */}
-      <div className="flex gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <a
           href={`/orgs/${activeOrgId}/departments/${activeDeptId}/invite`}
-          className="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-800 transition text-sm"
+          className="btn btn-primary flex items-center justify-center gap-2 py-3 text-base"
         >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+          </svg>
           Generate Invite
         </a>
         <a
           href={`/orgs/${activeOrgId}/withdrawals/new`}
-          className="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-800 transition text-sm"
+          className="btn btn-accent flex items-center justify-center gap-2 py-3 text-base"
         >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           Request Withdrawal
         </a>
       </div>

@@ -11,6 +11,7 @@ export interface AuthPayload {
     id: string;
     email: string;
     name: string | null;
+    organizationId?: string;
   };
   error?: string;
 }
@@ -26,7 +27,7 @@ export interface GoogleOAuthPayload {
 export async function registerUser(
   email: string,
   password: string,
-  name?: string
+  organizationName?: string
 ): Promise<AuthPayload> {
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -36,27 +37,51 @@ export async function registerUser(
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        passwordHash,
-        authProvider: "email",
-        name: name || undefined,
-      },
-      create: {
-        email,
-        passwordHash,
-        name,
-        authProvider: "email",
-      },
+    // Create user and organization in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.upsert({
+        where: { email },
+        update: {
+          passwordHash,
+          authProvider: "email",
+        },
+        create: {
+          email,
+          passwordHash,
+          authProvider: "email",
+        },
+      });
+
+      // Create organization if organizationName provided
+      let organization = null;
+      if (organizationName) {
+        organization = await tx.organization.create({
+          data: {
+            name: organizationName,
+            members: {
+              create: {
+                userId: user.id,
+                role: "CHIEF_ADMIN",
+              },
+            },
+          },
+        });
+      }
+
+      return { user, organizationId: organization?.id };
     });
 
-    const token = generateToken(user.id, user.email);
+    const token = generateToken(result.user.id, result.user.email);
 
     return {
       success: true,
       token,
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { 
+        id: result.user.id, 
+        email: result.user.email, 
+        name: result.user.name,
+        organizationId: result.organizationId,
+      },
     };
   } catch (error) {
     return { success: false, error: String(error) };
@@ -66,7 +91,18 @@ export async function registerUser(
 // LOGIN - Email + Password
 export async function loginUser(email: string, password: string): Promise<AuthPayload> {
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ 
+      where: { email },
+      include: {
+        organizationMembers: {
+          select: {
+            organizationId: true,
+            role: true,
+          },
+          take: 1,
+        },
+      },
+    });
 
     if (!user || !user.passwordHash) {
       return { success: false, error: "Invalid email or password" };
@@ -82,7 +118,12 @@ export async function loginUser(email: string, password: string): Promise<AuthPa
     return {
       success: true,
       token,
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        name: user.name,
+        organizationId: user.organizationMembers[0]?.organizationId,
+      },
     };
   } catch (error) {
     return { success: false, error: String(error) };

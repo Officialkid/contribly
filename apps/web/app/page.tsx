@@ -1,486 +1,579 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api-client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export default function HomePage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
 
-  // Login form state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  // Carousel auto-slide every 3 seconds
+  useEffect(() => {
+    if (isCarouselPaused) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % 3); // 3 slides
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isCarouselPaused]);
 
-  // Signup form state
-  const [signupData, setSignupData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // Scroll detection for back-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await apiClient.login(loginEmail, loginPassword);
-      if (response.user && response.user.organizationId) {
-        router.push(`/orgs/${response.user.organizationId}`);
-      } else {
-        setError("No organization found for this user");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setIsLoading(false);
-    }
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const carouselSlides = [
+    {
+      title: "Track Contributions in Real-Time",
+      description: "Monitor payment status, contribution history, and member balances across all departments",
+      icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+    },
+    {
+      title: "Manage Multiple Departments",
+      description: "Organize contributions by department with different payment schedules and member lists",
+      icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
+    },
+    {
+      title: "Handle Claims & Withdrawals",
+      description: "Approve payment claims, manage withdrawals, and maintain transparency with detailed reports",
+      icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    },
+  ];
 
-    if (signupData.password !== signupData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+  const useCases = [
+    {
+      title: "Community Groups",
+      description: "Manage group contributions for savings, medical, or social activities",
+      icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
+    },
+    {
+      title: "Religious Organizations",
+      description: "Track tithes, offerings, and member contributions transparently",
+      icon: "M7 12a5 5 0 1110 0 5 5 0 01-10 0zm5-5V2m0 20v-6m5-5h6m-6 0h-6",
+    },
+    {
+      title: "Cooperative Societies",
+      description: "Manage share contributions and dividend distributions effectively",
+      icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
+    },
+    {
+      title: "Corporate Teams",
+      description: "Manage team expenses, fund collections, and activity budgets",
+      icon: "M13 10V3L4 14h7v7l9-11h-7z",
+    },
+  ];
 
-    if (signupData.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
+  const features = [
+    {
+      title: "Easy Payment Tracking",
+      description: "Record and monitor all contributions with automatic balance calculations",
+      icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
+    },
+    {
+      title: "Multi-Department Support",
+      description: "Create and manage multiple departments with independent contribution schedules",
+      icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m4-4h1m-1 4h1",
+    },
+    {
+      title: "Member Management",
+      description: "Add members, assign roles, and manage permissions with role-based access",
+      icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
+    },
+    {
+      title: "Claims & Withdrawals",
+      description: "Submit and approve payment claims with full audit trails",
+      icon: "M9 12l2 2 4-4m9 0a9 9 0 11-18 0 9 9 0 0118 0z",
+    },
+    {
+      title: "Analytics & Reports",
+      description: "Get detailed insights with charts, tables, and exportable reports",
+      icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+    },
+    {
+      title: "Secure & Transparent",
+      description: "Bank-grade security with transparent transaction history for all members",
+      icon: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
+    },
+  ];
 
-    setIsLoading(true);
+  const steps = [
+    {
+      number: "1",
+      title: "Create Organization",
+      description: "Sign up and set up your organization in minutes",
+    },
+    {
+      number: "2",
+      title: "Add Departments",
+      description: "Create departments and set contribution amounts",
+    },
+    {
+      number: "3",
+      title: "Invite Members",
+      description: "Send invites to members and assign roles",
+    },
+    {
+      number: "4",
+      title: "Track Contributions",
+      description: "Members submit payments and you manage approvals",
+    },
+  ];
 
-    try {
-      const response = await apiClient.register({
-        email: signupData.email,
-        password: signupData.password,
-        firstName: signupData.firstName,
-        lastName: signupData.lastName,
-      });
-
-      if (response.user) {
-        // Auto login after signup
-        await apiClient.login(signupData.email, signupData.password);
-        router.push(`/orgs/${response.user.organizationId || "new"}`);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const faqs = [
+    {
+      question: "How secure is Contribly?",
+      answer: "Contribly uses bank-grade encryption and security protocols to protect all your data. We comply with international data protection standards and conduct regular security audits.",
+    },
+    {
+      question: "Can I have multiple departments?",
+      answer: "Yes! You can create unlimited departments, each with their own members, contribution amounts, and payment schedules.",
+    },
+    {
+      question: "What payment methods do you support?",
+      answer: "We support bank transfers, mobile money, and other local payment methods depending on your region.",
+    },
+    {
+      question: "Is there a free trial?",
+      answer: "Yes, you can start with our free plan that includes up to 50 members. Upgrade anytime for additional features.",
+    },
+    {
+      question: "How do I export reports?",
+      answer: "You can export all reports in CSV, PDF, and Excel formats directly from the dashboard.",
+    },
+    {
+      question: "Can members access their account?",
+      answer: "Yes, each member gets their own dashboard to view their contribution history, balance, and payment status.",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      {/* Modern Navbar */}
-      <nav className="absolute top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-sm">
+    <div className="min-h-screen bg-background">
+      {/* Solid Navbar */}
+      <nav className="sticky top-0 z-50 bg-card border-b border-border shadow-soft">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <div className="flex items-center group cursor-pointer">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center mr-3 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-white font-bold text-xl">C</span>
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center shadow-soft group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-              <h1 className="text-2xl font-bold text-primary tracking-tight group-hover:text-primary-dark transition-colors duration-300">
+              <h1 className="text-2xl font-bold text-primary group-hover:text-primary-dark transition-colors duration-300">
                 Contribly
               </h1>
-            </div>
-            <div className="hidden md:flex items-center gap-8 text-sm">
-              <a href="#features" className="text-text-muted hover:text-primary transition-colors duration-300 font-medium">
+            </Link>
+
+            {/* Navigation Links */}
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#who-can-use" className="text-text-muted hover:text-primary transition-colors font-medium text-sm">
+                Who Can Use
+              </a>
+              <a href="#features" className="text-text-muted hover:text-primary transition-colors font-medium text-sm">
                 Features
               </a>
-              <a href="#how-it-works" className="text-text-muted hover:text-primary transition-colors duration-300 font-medium">
+              <a href="#how-it-works" className="text-text-muted hover:text-primary transition-colors font-medium text-sm">
                 How It Works
               </a>
-              <a href="#contact" className="text-text-muted hover:text-primary transition-colors duration-300 font-medium">
-                Contact
+              <a href="#faqs" className="text-text-muted hover:text-primary transition-colors font-medium text-sm">
+                FAQs
               </a>
             </div>
+
+            {/* Auth Buttons */}
+            <div className="hidden md:flex items-center gap-4">
+              <Link href="/login" className="text-primary hover:text-primary-dark font-semibold text-sm transition-colors">
+                Sign In
+              </Link>
+              <Link href="/register" className="px-6 py-2.5 bg-primary text-white rounded-button font-semibold text-sm hover:bg-primary-dark shadow-soft hover:shadow-medium transform hover:scale-105 transition-all duration-300">
+                Sign Up
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 text-text-muted hover:text-primary transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-border bg-card">
+              <div className="px-6 py-4 space-y-4">
+                <a
+                  href="#who-can-use"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-text-muted hover:text-primary transition-colors font-medium text-sm"
+                >
+                  Who Can Use
+                </a>
+                <a
+                  href="#features"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-text-muted hover:text-primary transition-colors font-medium text-sm"
+                >
+                  Features
+                </a>
+                <a
+                  href="#how-it-works"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-text-muted hover:text-primary transition-colors font-medium text-sm"
+                >
+                  How It Works
+                </a>
+                <a
+                  href="#faqs"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-text-muted hover:text-primary transition-colors font-medium text-sm"
+                >
+                  FAQs
+                </a>
+                <div className="pt-4 border-t border-border space-y-3">
+                  <Link
+                    href="/login"
+                    className="block text-center py-2.5 text-primary hover:text-primary-dark font-semibold text-sm transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="block text-center py-2.5 bg-primary text-white rounded-button font-semibold text-sm hover:bg-primary-dark shadow-soft"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
-      {/* Split Layout */}
-      <div className="grid lg:grid-cols-2 min-h-screen">
-        {/* Left Side - Curved Gradient Background with Content */}
-        <div className="relative bg-gradient-to-br from-primary via-primary-dark to-primary-800 overflow-hidden">
-          {/* Curved Shape */}
-          <div className="absolute inset-0 opacity-30">
-            <svg className="absolute right-0 top-0 h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M100,0 L100,100 L0,100 Q50,50 0,0 Z" fill="rgba(255,255,255,0.1)" />
-            </svg>
-          </div>
-
-          {/* Animated Background Elements */}
-          <div className="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse delay-700"></div>
-
-          {/* Content */}
-          <div className="relative z-10 flex flex-col justify-center min-h-screen px-8 lg:px-16 py-20">
-            <div className="max-w-xl space-y-8 animate-fade-in">
+      {/* Hero Section with Carousel */}
+      <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-primary/5 to-background">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <div
+            className="grid lg:grid-cols-2 gap-12 items-center"
+            onMouseEnter={() => setIsCarouselPaused(true)}
+            onMouseLeave={() => setIsCarouselPaused(false)}
+          >
+            {/* Carousel Content */}
+            <div className="space-y-8 animate-fade-in">
               <div className="inline-block">
-                <span className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white text-sm font-semibold border border-white/20">
-                  🚀 Contribution Management Platform
+                <span className="px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-primary text-sm font-semibold">
+                  🚀 Smart Contribution Management
                 </span>
               </div>
 
-              <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-tight">
-                Manage Group
-                <br />
-                <span className="bg-gradient-to-r from-accent to-accent-light text-transparent bg-clip-text">
-                  Contributions
-                </span>
-                <br />
-                With Ease
-              </h1>
+              <div className="min-h-40">
+                <h1 className="text-5xl lg:text-6xl font-bold text-text-primary leading-tight">
+                  {carouselSlides[currentSlide].title}
+                </h1>
+                <p className="text-xl text-text-muted mt-6 leading-relaxed">
+                  {carouselSlides[currentSlide].description}
+                </p>
+              </div>
 
-              <p className="text-xl text-white/80 leading-relaxed">
-                Track payments, manage departments, and keep your organization's
-                finances organized in one powerful platform.
+              <div className="flex items-center gap-6 pt-4">
+                <Link href="/register" className="btn btn-primary flex items-center gap-2 py-3 px-8">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Get Started Free
+                </Link>
+                <Link href="#features" className="btn btn-outline flex items-center gap-2 py-3 px-8">
+                  Learn More
+                </Link>
+              </div>
+
+              {/* Carousel Indicators */}
+              <div className="flex gap-3 pt-8">
+                {carouselSlides.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      idx === currentSlide ? "bg-primary w-8" : "bg-border hover:bg-primary/50"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Carousel Visual */}
+            <div className="relative hidden lg:flex items-center justify-center">
+              <div className="w-96 h-96 bg-gradient-to-br from-primary/10 to-accent/10 rounded-3xl flex items-center justify-center overflow-hidden">
+                <svg className="w-48 h-48 text-primary opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={carouselSlides[currentSlide].icon} />
+                </svg>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 rounded-3xl blur-2xl" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Who Can Use Section */}
+      <section id="who-can-use" className="py-20 lg:py-32 bg-white">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-text-primary mb-4">Who Can Use Contribly?</h2>
+            <p className="text-xl text-text-muted max-w-2xl mx-auto">
+              From community groups to corporate teams, Contribly simplifies contribution management for any organization
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {useCases.map((useCase, idx) => (
+              <div key={idx} className="card p-8 hover:shadow-medium transition-all duration-300 group">
+                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                  <svg className="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={useCase.icon} />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-text-primary mb-2">{useCase.title}</h3>
+                <p className="text-text-muted text-sm">{useCase.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-20 lg:py-32 bg-background">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-text-primary mb-4">Powerful Features</h2>
+            <p className="text-xl text-text-muted max-w-2xl mx-auto">
+              Everything you need to manage contributions effectively
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, idx) => (
+              <div key={idx} className="card p-8 hover:shadow-medium transition-all duration-300">
+                <div className="w-14 h-14 bg-accent/10 rounded-xl flex items-center justify-center mb-6">
+                  <svg className="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={feature.icon} />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-text-primary mb-3">{feature.title}</h3>
+                <p className="text-text-muted">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-20 lg:py-32 bg-white">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-text-primary mb-4">How It Works</h2>
+            <p className="text-xl text-text-muted max-w-2xl mx-auto">
+              Get started in 4 simple steps
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {steps.map((step, idx) => (
+              <div key={idx} className="relative">
+                <div className="card p-8 text-center h-full">
+                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-soft">
+                    <span className="text-2xl font-bold text-white">{step.number}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-text-primary mb-3">{step.title}</h3>
+                  <p className="text-text-muted text-sm">{step.description}</p>
+                </div>
+                {idx < steps.length - 1 && (
+                  <div className="hidden lg:block absolute top-1/2 -right-4 w-8 h-px bg-border transform -translate-y-1/2" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <Link href="/register" className="btn btn-primary py-3.5 px-10 inline-flex items-center gap-2 text-lg">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Start Free Trial
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQs Section */}
+      <section id="faqs" className="py-20 lg:py-32 bg-background">
+        <div className="max-w-3xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-text-primary mb-4">Frequently Asked Questions</h2>
+            <p className="text-xl text-text-muted">
+              Find answers to common questions about Contribly
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, idx) => (
+              <div key={idx} className="card overflow-hidden">
+                <button
+                  onClick={() => setExpandedFAQ(expandedFAQ === idx ? null : idx)}
+                  className="w-full px-8 py-6 flex items-center justify-between hover:bg-background transition-colors text-left"
+                >
+                  <h3 className="text-lg font-bold text-text-primary">{faq.question}</h3>
+                  <svg
+                    className={`w-6 h-6 text-primary transition-transform duration-300 flex-shrink-0 ${
+                      expandedFAQ === idx ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                </button>
+                {expandedFAQ === idx && (
+                  <div className="px-8 py-4 bg-background border-t border-border">
+                    <p className="text-text-muted leading-relaxed">{faq.answer}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 lg:py-32 bg-gradient-to-r from-primary via-primary-dark to-primary-800">
+        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
+          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+            Ready to Simplify Contribution Management?
+          </h2>
+          <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
+            Join thousands of organizations already using Contribly to manage contributions efficiently and transparently
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link href="/register" className="px-8 py-4 bg-white text-primary rounded-button font-bold text-lg hover:bg-gray-50 shadow-soft hover:shadow-medium transform hover:scale-105 transition-all duration-300 inline-flex items-center justify-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Get Started Free
+            </Link>
+            <Link href="/login" className="px-8 py-4 border-2 border-white text-white rounded-button font-bold text-lg hover:bg-white/10 transition-all duration-300">
+              Sign In to Dashboard
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-card border-t border-border">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 py-16 lg:py-20">
+          <div className="grid md:grid-cols-3 gap-12 mb-12">
+            {/* About */}
+            <div className="space-y-4">
+              <Link href="/" className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center shadow-soft">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span className="text-xl font-bold text-primary">Contribly</span>
+              </Link>
+              <p className="text-text-muted text-sm leading-relaxed">
+                Simplifying contribution management for organizations worldwide. Making financial transparency and accountability easy.
               </p>
+            </div>
 
-              <div className="flex flex-wrap gap-6 pt-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold">Easy Tracking</p>
-                    <p className="text-white/60 text-sm">Real-time updates</p>
-                  </div>
-                </div>
+            {/* Quick Links */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-text-primary">Quick Links</h4>
+              <ul className="space-y-2">
+                <li><a href="#features" className="text-text-muted hover:text-primary transition-colors text-sm">Features</a></li>
+                <li><a href="#how-it-works" className="text-text-muted hover:text-primary transition-colors text-sm">How It Works</a></li>
+                <li><a href="#faqs" className="text-text-muted hover:text-primary transition-colors text-sm">FAQs</a></li>
+                <li><Link href="/login" className="text-text-muted hover:text-primary transition-colors text-sm">Sign In</Link></li>
+              </ul>
+            </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                    <svg className="w-6 h-6 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold">Multi-Department</p>
-                    <p className="text-white/60 text-sm">Organize teams</p>
-                  </div>
-                </div>
+            {/* Contact & Social */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-bold text-text-primary">Get In Touch</h4>
+              <div className="space-y-2">
+                <p className="text-text-muted text-sm">📧 admin@joincontribly.com</p>
+                <a href="https://wa.me/254745169345" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-primary transition-colors text-sm block">📱 +254745169345</a>
+                <p className="text-text-muted text-sm">📍 Nairobi, Kenya</p>
               </div>
+              <div className="flex gap-3 pt-2">
+                {/* LinkedIn */}
+                <a href="#" className="w-10 h-10 bg-[#0A66C2]/10 rounded-lg flex items-center justify-center hover:bg-[#0A66C2]/20 transition-colors">
+                  <svg className="w-5 h-5" fill="#0A66C2" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                </a>
+                {/* Facebook */}
+                <a href="#" className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center hover:bg-[#1877F2]/20 transition-colors">
+                  <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                </a>
+                {/* Instagram */}
+                <a href="#" className="w-10 h-10 bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF] rounded-lg flex items-center justify-center hover:opacity-90 transition-opacity">
+                  <svg className="w-5 h-5" fill="white" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
 
-              <div className="flex items-center gap-8 pt-8 border-t border-white/10">
-                <div>
-                  <p className="text-3xl font-bold text-white">1000+</p>
-                  <p className="text-white/60 text-sm">Organizations</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-white">50K+</p>
-                  <p className="text-white/60 text-sm">Active Users</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-white">99.9%</p>
-                  <p className="text-white/60 text-sm">Uptime</p>
-                </div>
+          {/* Bottom Footer */}
+          <div className="border-t border-border pt-8">
+            <div className="flex flex-col md:flex-row justify-between items-center text-text-muted text-sm">
+              <p>&copy; 2026 Contribly. All rights reserved.</p>
+              <div className="flex gap-6 mt-4 md:mt-0">
+                <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+                <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+                <a href="https://wa.me/254745169345" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Contact</a>
               </div>
             </div>
           </div>
         </div>
+      </footer>
 
-        {/* Right Side - Auth Card */}
-        <div className="relative flex items-center justify-center p-8 lg:p-16 bg-background">
-          <div className="w-full max-w-md">
-            {/* Auth Card */}
-            <div className="bg-card border border-border rounded-card shadow-large p-8 space-y-6">
-              {/* Tab Switcher */}
-              <div className="flex gap-2 bg-background p-1 rounded-button">
-                <button
-                  onClick={() => setActiveTab("login")}
-                  className={`flex-1 px-4 py-3 rounded-button font-semibold transition-all duration-300 ${
-                    activeTab === "login"
-                      ? "bg-primary text-white shadow-soft"
-                      : "text-text-muted hover:text-text-primary"
-                  }`}
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => setActiveTab("signup")}
-                  className={`flex-1 px-4 py-3 rounded-button font-semibold transition-all duration-300 ${
-                    activeTab === "signup"
-                      ? "bg-primary text-white shadow-soft"
-                      : "text-text-muted hover:text-text-primary"
-                  }`}
-                >
-                  Sign Up
-                </button>
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-button p-4 animate-shake">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-              )}
-
-              {/* Login Form */}
-              {activeTab === "login" && (
-                <form onSubmit={handleLogin} className="space-y-5 animate-fade-in">
-                  <div>
-                    <label className="block text-sm font-semibold text-text-primary mb-2">Email Address</label>
-                    <div className="relative group">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors duration-300">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                        </svg>
-                      </div>
-                      <input
-                        type="email"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-background border-2 border-border rounded-button text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 hover:border-primary/50 transition-all duration-300"
-                        placeholder="you@example.com"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-text-primary mb-2">Password</label>
-                    <div className="relative group">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors duration-300">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                      </div>
-                      <input
-                        type={showLoginPassword ? "text" : "password"}
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        className="w-full pl-12 pr-12 py-3 bg-background border-2 border-border rounded-button text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 hover:border-primary/50 transition-all duration-300"
-                        placeholder="••••••••"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors duration-300 focus:outline-none"
-                      >
-                        {showLoginPassword ? (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="w-4 h-4 text-primary border-border rounded focus:ring-primary" />
-                      <span className="text-sm text-text-muted">Remember me</span>
-                    </label>
-                    <a href="#" className="text-sm text-primary hover:text-primary-dark font-semibold">
-                      Forgot password?
-                    </a>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full py-3.5 bg-primary text-white rounded-button font-bold text-base shadow-soft hover:bg-primary-dark hover:shadow-medium focus:outline-none focus:ring-4 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                  >
-                    {isLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Signing in...
-                      </span>
-                    ) : "Sign In"}
-                  </button>
-                </form>
-              )}
-
-              {/* Signup Form */}
-              {activeTab === "signup" && (
-                <form onSubmit={handleSignup} className="space-y-5 animate-fade-in">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-text-primary mb-2">First Name</label>
-                      <div className="relative group">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors duration-300">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                        </div>
-                        <input
-                          type="text"
-                          value={signupData.firstName}
-                          onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
-                          className="w-full pl-12 pr-4 py-3 bg-background border-2 border-border rounded-button text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 hover:border-primary/50 transition-all duration-300"
-                          placeholder="John"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-text-primary mb-2">Last Name</label>
-                      <div className="relative group">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors duration-300">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                        </div>
-                        <input
-                          type="text"
-                          value={signupData.lastName}
-                          onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
-                          className="w-full pl-12 pr-4 py-3 bg-background border-2 border-border rounded-button text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 hover:border-primary/50 transition-all duration-300"
-                          placeholder="Doe"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-text-primary mb-2">Email Address</label>
-                    <div className="relative group">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors duration-300">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                        </svg>
-                      </div>
-                      <input
-                        type="email"
-                        value={signupData.email}
-                        onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                        className="w-full pl-12 pr-4 py-3 bg-background border-2 border-border rounded-button text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 hover:border-primary/50 transition-all duration-300"
-                        placeholder="you@example.com"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-text-primary mb-2">Password</label>
-                    <div className="relative group">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors duration-300">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                      </div>
-                      <input
-                        type={showSignupPassword ? "text" : "password"}
-                        value={signupData.password}
-                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                        className="w-full pl-12 pr-12 py-3 bg-background border-2 border-border rounded-button text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 hover:border-primary/50 transition-all duration-300"
-                        placeholder="At least 6 characters"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowSignupPassword(!showSignupPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors duration-300 focus:outline-none"
-                      >
-                        {showSignupPassword ? (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-text-primary mb-2">Confirm Password</label>
-                    <div className="relative group">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors duration-300">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                      </div>
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={signupData.confirmPassword}
-                        onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                        className="w-full pl-12 pr-12 py-3 bg-background border-2 border-border rounded-button text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 hover:border-primary/50 transition-all duration-300"
-                        placeholder="Re-enter password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors duration-300 focus:outline-none"
-                      >
-                        {showConfirmPassword ? (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full py-3.5 bg-primary text-white rounded-button font-bold text-base shadow-soft hover:bg-primary-dark hover:shadow-medium focus:outline-none focus:ring-4 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                  >
-                    {isLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Creating account...
-                      </span>
-                    ) : "Create Account"}
-                  </button>
-
-                  <p className="text-xs text-text-muted text-center">
-                    By signing up, you agree to our{" "}
-                    <a href="#" className="text-primary hover:underline">Terms</a> and{" "}
-                    <a href="#" className="text-primary hover:underline">Privacy Policy</a>
-                  </p>
-                </form>
-              )}
-            </div>
-
-            {/* Trust Badges */}
-            <div className="mt-8 text-center space-y-4">
-              <p className="text-sm text-text-muted">Trusted by organizations worldwide</p>
-              <div className="flex items-center justify-center gap-8 opacity-60">
-                <div className="w-20 h-8 bg-text-muted/20 rounded"></div>
-                <div className="w-20 h-8 bg-text-muted/20 rounded"></div>
-                <div className="w-20 h-8 bg-text-muted/20 rounded"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 w-12 h-12 bg-primary text-white rounded-full shadow-large hover:bg-primary-dark hover:shadow-xl transform hover:scale-110 transition-all duration-300 flex items-center justify-center z-50"
+          aria-label="Back to top"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

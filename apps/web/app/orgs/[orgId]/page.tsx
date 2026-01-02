@@ -22,15 +22,20 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">{activeOrg.name}</h1>
-        <p className="text-slate-600 mt-1">
-          {isChiefAdmin
-            ? "Chief Administrator View"
-            : isDeptAdmin
-              ? `${activeDept?.name || "Department"} Administrator`
-              : "Contributor Portal"}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-text-primary">{activeOrg.name}</h1>
+          <p className="text-text-muted mt-1">
+            {isChiefAdmin
+              ? "Chief Administrator View"
+              : isDeptAdmin
+                ? `${activeDept?.name || "Department"} Administrator`
+                : "Contributor Portal"}
+          </p>
+        </div>
+        <span className={`badge ${isChiefAdmin ? 'badge-accent' : isDeptAdmin ? 'badge-primary' : 'badge'}`}>
+          {isChiefAdmin ? "👑 Chief Admin" : isDeptAdmin ? "🔑 Dept Admin" : "👤 Member"}
+        </span>
       </div>
 
       <Suspense fallback={<Loading message="Loading dashboard..." />}>
