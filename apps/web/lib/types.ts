@@ -2,6 +2,9 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  organizationId?: string | null;
+  role?: "CHIEF_ADMIN" | "ADMIN" | "MEMBER";
+  departmentId?: string | null;
   organizations: Organization[];
 }
 

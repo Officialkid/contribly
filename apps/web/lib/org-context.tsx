@@ -29,19 +29,45 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initUser = async () => {
+      setIsLoading(true);
       try {
         const response = await apiClient.getMe();
-        const organizations = Array.isArray(response.user?.organizations)
-          ? response.user.organizations
+        const rawUser = response.user;
+
+        if (!rawUser) {
+          setUser(null);
+          setActiveOrgId(null);
+          return;
+        }
+
+        let organizations = Array.isArray((rawUser as any).organizations)
+          ? (rawUser as any).organizations
           : [];
 
-        setUser({ ...response.user, organizations });
+        const organizationId = (rawUser as any).organizationId || organizations[0]?.id || null;
 
-        if (organizations[0]) {
-          setActiveOrgId(organizations[0].id);
+        if (organizationId && organizations.length === 0) {
+          try {
+            const orgResponse = await apiClient.getOrganization(organizationId);
+            const organization = (orgResponse as any).organization ?? (orgResponse as any);
+
+            if (organization?.id) {
+              organizations = [organization];
+            }
+          } catch (orgErr) {
+            setError(orgErr instanceof Error ? orgErr.message : "Failed to load organization");
+          }
+        }
+
+        setUser({ ...(rawUser as any), organizations });
+
+        if (organizationId) {
+          setActiveOrgId(organizationId);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load user");
+        setUser(null);
+        setActiveOrgId(null);
       } finally {
         setIsLoading(false);
       }
@@ -51,7 +77,11 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!activeOrgId) return;
+    if (!activeOrgId) {
+      setDepartments([]);
+      setActiveDeptId(null);
+      return;
+    }
 
     const fetchDepts = async () => {
       try {
@@ -76,8 +106,8 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   const refetchOrgs = async () => {
     try {
       const response = await apiClient.listOrganizations();
-      const organizations = Array.isArray(response.organizations)
-        ? response.organizations
+      const organizations = Array.isArray((response as any).organizations)
+        ? (response as any).organizations
         : [];
 
       if (organizations[0]) {
@@ -87,7 +117,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       setUser((prev) =>
         prev
           ? {
-              ...prev,
+              ...(prev as any),
               organizations,
             }
           : prev,
