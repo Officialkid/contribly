@@ -14,24 +14,30 @@ app.set("trust proxy", 1);
 const allowedOrigins = [
   "http://localhost:3000",                    // Local dev
   "http://localhost:3001",                    // Local API dev
+  "https://contribly-web.onrender.com",       // Render production (PRIMARY)
   "https://contribly-web.vercel.app",         // Vercel production
-  "https://contribly-web.onrender.com",       // Render production (if used later)
-  "https://contribly.onrender.com",           // Render frontend (current)
+  "https://contribly.onrender.com",           // Render frontend (alternative)
   process.env.FRONTEND_URL,                   // Any custom frontend URL from env
 ].filter(Boolean);
+
+console.log("🌍 CORS allowed origins:", allowedOrigins);
 
 // Middleware
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, Postman, curl, server-to-server)
     if (!origin) {
+      console.log("✅ CORS: Allowing request with no origin");
       return callback(null, true);
     }
     
     // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {
+      console.log(`✅ CORS: Allowing origin: ${origin}`);
       callback(null, true);
     } else {
+      console.error(`❌ CORS: Rejecting origin: ${origin}`);
+      console.error(`   Allowed origins:`, allowedOrigins);
       callback(new Error(`CORS policy: origin ${origin} not allowed`));
     }
   },
@@ -54,7 +60,16 @@ app.get("/", (req, res) => {
 
 // Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Contribly API is running" });
+  res.json({ 
+    status: "ok", 
+    message: "Contribly API is running",
+    environment: process.env.NODE_ENV || "development",
+    cors: {
+      allowedOrigins: allowedOrigins,
+      requestOrigin: req.headers.origin || "none",
+    },
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Routes (lazy loaded)

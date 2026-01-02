@@ -64,11 +64,22 @@ router.post("/login", async (req: AuthRequest, res: Response) => {
     }
 
     // Set HTTP-only cookie
-    res.cookie("token", result.token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    };
+    
+    res.cookie("token", result.token, cookieOptions);
+    
+    console.log("🍪 Cookie set on login:", {
+      hasToken: !!result.token,
+      secure: cookieOptions.secure,
+      sameSite: cookieOptions.sameSite,
+      httpOnly: cookieOptions.httpOnly,
+      origin: req.headers.origin,
+      userEmail: result.user?.email,
     });
 
     return res.json({
@@ -118,11 +129,22 @@ router.get(
       console.log("🔵 Setting cookie for user:", userData.user?.id);
 
       // Set HTTP-only cookie
-      res.cookie("token", userData.token, {
+      const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      };
+      
+      res.cookie("token", userData.token, cookieOptions);
+      
+      console.log("🍪 Cookie set on OAuth:", {
+        hasToken: !!userData.token,
+        secure: cookieOptions.secure,
+        sameSite: cookieOptions.sameSite,
+        httpOnly: cookieOptions.httpOnly,
+        origin: req.headers.origin,
+        userEmail: userData.user?.email,
       });
 
       // Redirect to auth callback with organizationId parameter
