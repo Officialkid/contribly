@@ -27,7 +27,8 @@ export interface GoogleOAuthPayload {
 export async function registerUser(
   email: string,
   password: string,
-  organizationName?: string
+  name: string,
+  organizationName: string
 ): Promise<AuthPayload> {
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -39,36 +40,29 @@ export async function registerUser(
 
     // Create user and organization in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.upsert({
-        where: { email },
-        update: {
-          passwordHash,
-          authProvider: "email",
-        },
-        create: {
+      const user = await tx.user.create({
+        data: {
           email,
+          name,
           passwordHash,
           authProvider: "email",
         },
       });
 
-      // Create organization if organizationName provided
-      let organization = null;
-      if (organizationName) {
-        organization = await tx.organization.create({
-          data: {
-            name: organizationName,
-            members: {
-              create: {
-                userId: user.id,
-                role: "CHIEF_ADMIN",
-              },
+      // Always create organization for new user
+      const organization = await tx.organization.create({
+        data: {
+          name: organizationName,
+          members: {
+            create: {
+              userId: user.id,
+              role: "CHIEF_ADMIN",
             },
           },
-        });
-      }
+        },
+      });
 
-      return { user, organizationId: organization?.id };
+      return { user, organizationId: organization.id };
     });
 
     const token = generateToken(result.user.id, result.user.email);
@@ -84,6 +78,7 @@ export async function registerUser(
       },
     };
   } catch (error) {
+    console.error("❌ Register error:", error);
     return { success: false, error: String(error) };
   }
 }

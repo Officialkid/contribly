@@ -8,13 +8,16 @@ const router = Router();
 // REGISTER
 router.post("/register", async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password, organizationName } = req.body;
+    const { email, password, name, organizationName } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: "Email and password required" });
+    if (!email || !password || !name || !organizationName) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Email, password, name, and organizationName are required" 
+      });
     }
 
-    const result = await registerUser(email, password, organizationName);
+    const result = await registerUser(email, password, name, organizationName);
 
     if (!result.success) {
       return res.status(400).json(result);
@@ -28,11 +31,19 @@ router.post("/register", async (req: AuthRequest, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    return res.status(201).json({
+    // Redirect to organization dashboard if organizationId available
+    const redirectUrl = new URL(
+      `/orgs/${result.user?.organizationId}`,
+      process.env.FRONTEND_URL || "http://localhost:3000"
+    );
+
+    return res.json({
       success: true,
       user: result.user,
+      redirectUrl: redirectUrl.toString(),
     });
   } catch (error) {
+    console.error("❌ Registration error:", error);
     return res.status(500).json({ success: false, error: "Registration failed" });
   }
 });
@@ -99,8 +110,8 @@ router.get(
         organizationId: userData?.organizationId
       });
 
-      if (!userData || !userData.token) {
-        console.error("❌ No user data or token from passport");
+      if (!userData || !userData.token || !userData.organizationId) {
+        console.error("❌ Missing user data, token, or organizationId from passport");
         return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:3000"}?error=auth_failed`);
       }
 
@@ -114,13 +125,9 @@ router.get(
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-      // Redirect to frontend callback page with success
+      // Redirect to organization dashboard
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-      const redirectUrl = new URL("/auth/callback", frontendUrl);
-      
-      if (userData.organizationId) {
-        redirectUrl.searchParams.set("organizationId", userData.organizationId);
-      }
+      const redirectUrl = new URL(`/orgs/${userData.organizationId}`, frontendUrl);
       
       console.log("✅ Redirecting to:", redirectUrl.toString());
       return res.redirect(redirectUrl.toString());
