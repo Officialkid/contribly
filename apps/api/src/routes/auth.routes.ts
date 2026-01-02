@@ -73,7 +73,7 @@ router.post("/login", async (req: AuthRequest, res: Response) => {
 router.get(
   "/google",
   passport.authenticate("google", { 
-    scope: ["profile", "email"],
+    scope: ["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"],
     session: false,
   })
 );
