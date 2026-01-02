@@ -27,9 +27,9 @@ passport.use(
     ) => {
       try {
         console.log("🔵 Google OAuth Strategy - Starting verification");
-        console.log("🔵 Profile ID:", profile.id);
-        console.log("🔵 Profile Display Name:", profile.displayName);
-        console.log("🔵 Profile Emails:", JSON.stringify(profile.emails));
+        console.log("🔵 Google Profile ID:", profile.id);
+        console.log("🔵 Google Profile Display Name:", profile.displayName);
+        console.log("🔵 Google Profile Emails:", JSON.stringify(profile.emails));
 
         const email = profile.emails?.[0]?.value;
         const name = profile.displayName;
@@ -56,10 +56,12 @@ passport.use(
           },
         });
 
+        console.log("🔵 Prisma lookup result:", user ? `Found user ${user.id}` : "No user found, will create new");
+
         let organizationId: string | undefined;
 
         if (user) {
-          console.log("🔵 Existing user found:", user.id);
+          console.log("✅ Existing user found:", user.id);
           
           // Update existing user with Google auth info if needed
           if (!user.providerUserId || user.authProvider !== "google") {
@@ -81,16 +83,17 @@ passport.use(
                 },
               },
             });
+            console.log("✅ User updated with Google auth");
           }
           
           organizationId = user.organizationMembers[0]?.organizationId;
-          console.log("🔵 User organization ID:", organizationId);
+          console.log("✅ User organization ID:", organizationId);
         } else {
-          console.log("🔵 New user - creating user and organization");
+          console.log("🔵 New user - creating user and organization in transaction");
           
           // Create new user and organization in transaction
           const result = await prisma.$transaction(async (tx) => {
-            console.log("🔵 Creating new user...");
+            console.log("🔵 Creating new user with email:", email);
             const newUser = await tx.user.create({
               data: {
                 email,
@@ -100,10 +103,10 @@ passport.use(
                 passwordHash: null,
               },
             });
-            console.log("✅ User created:", newUser.id);
+            console.log("✅ User created successfully:", newUser.id);
 
             // Create default organization for new user
-            console.log("🔵 Creating default organization...");
+            console.log("🔵 Creating default organization for user:", newUser.id);
             const organization = await tx.organization.create({
               data: {
                 name: name ? `${name}'s Organization` : "My Organization",
@@ -115,7 +118,7 @@ passport.use(
                 },
               },
             });
-            console.log("✅ Organization created:", organization.id);
+            console.log("✅ Organization created successfully:", organization.id);
 
             return { user: newUser, organizationId: organization.id };
           });
@@ -128,20 +131,25 @@ passport.use(
             }] 
           };
           organizationId = result.organizationId;
-          console.log("✅ Transaction completed successfully");
+          console.log("✅ Transaction completed successfully - user and org created");
         }
 
         // Generate JWT token
         console.log("🔵 Generating JWT token for user:", user.id);
         const token = generateToken(user.id, user.email);
+        console.log("✅ JWT token generated");
 
         // Pass user data and token to the callback
-        console.log("✅ Google OAuth verification complete");
+        console.log("✅ Google OAuth Strategy verification complete - passing to callback");
         return done(null, { user, token, organizationId });
       } catch (error) {
         console.error("❌ Google OAuth Strategy Error:", error);
-        console.error("❌ Error details:", error instanceof Error ? error.message : String(error));
-        console.error("❌ Stack trace:", error instanceof Error ? error.stack : "No stack trace");
+        if (error instanceof Error) {
+          console.error("❌ Error message:", error.message);
+          console.error("❌ Error stack:", error.stack);
+        } else {
+          console.error("❌ Error details:", String(error));
+        }
         // Avoid throwing to Express; fail gracefully so failureRedirect is used
         return done(null, false, { message: "google_oauth_failed" });
       }

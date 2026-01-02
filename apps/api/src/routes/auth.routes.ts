@@ -94,7 +94,7 @@ router.get(
   "/google/callback",
   passport.authenticate("google", { 
     session: false,
-    failureRedirect: `${process.env.FRONTEND_URL || "http://localhost:3000"}?error=google_auth_failed`,
+    failureRedirect: `${process.env.FRONTEND_URL || "http://localhost:3000"}/login?error=google_auth_failed`,
   }),
   (req: AuthRequest, res: Response) => {
     try {
@@ -112,7 +112,7 @@ router.get(
 
       if (!userData || !userData.token || !userData.organizationId) {
         console.error("❌ Missing user data, token, or organizationId from passport");
-        return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:3000"}?error=auth_failed`);
+        return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:3000"}/login?error=auth_failed`);
       }
 
       console.log("🔵 Setting cookie for user:", userData.user?.id);
@@ -125,9 +125,10 @@ router.get(
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-      // Redirect to organization dashboard
+      // Redirect to auth callback with organizationId parameter
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-      const redirectUrl = new URL(`/orgs/${userData.organizationId}`, frontendUrl);
+      const redirectUrl = new URL(`/auth/callback`, frontendUrl);
+      redirectUrl.searchParams.set("organizationId", userData.organizationId);
       
       console.log("✅ Redirecting to:", redirectUrl.toString());
       return res.redirect(redirectUrl.toString());
@@ -137,7 +138,7 @@ router.get(
       console.error("❌ Stack trace:", error instanceof Error ? error.stack : "No stack trace");
       
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-      return res.redirect(`${frontendUrl}?error=callback_failed`);
+      return res.redirect(`${frontendUrl}/login?error=callback_failed`);
     }
   }
 );
