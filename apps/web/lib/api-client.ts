@@ -73,10 +73,10 @@ export const apiClient = {
   },
 
   // Departments
-  createDepartment(orgId: string, name: string, monthlyContribution?: string) {
+  createDepartment(orgId: string, data: { name: string; monthlyContribution?: string | null }) {
     return this.request(`/api/organizations/${orgId}/departments`, {
       method: "POST",
-      body: JSON.stringify({ name, monthlyContribution }),
+      body: JSON.stringify(data),
     });
   },
 
@@ -100,10 +100,10 @@ export const apiClient = {
   },
 
   // Payments
-  recordPayment(orgId: string, amount: string, reference?: string, accountNumber?: string, transactionDate?: string) {
+  recordPayment(orgId: string, data: { amount: string; reference?: string; transactionDate?: string; departmentId?: string; currency?: string }) {
     return this.request(`/api/organizations/${orgId}/payments`, {
       method: "POST",
-      body: JSON.stringify({ amount, reference, accountNumber, transactionDate: transactionDate || new Date().toISOString() }),
+      body: JSON.stringify({ ...data, transactionDate: data.transactionDate || new Date().toISOString() }),
     });
   },
 
@@ -188,6 +188,71 @@ export const apiClient = {
     return this.request(`/api/withdrawals/${withdrawalId}/reject`, {
       method: "POST",
       body: JSON.stringify({ reason }),
+    });
+  },
+
+  // Profile
+  updateProfile(data: { name?: string; profileImage?: string }) {
+    return this.request("/api/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteAccount() {
+    return this.request("/api/auth/account", {
+      method: "DELETE",
+    });
+  },
+
+  // Payment Account Settings (Chief Admin)
+  setPaymentAccount(orgId: string, data: { accountType: "PAYBILL" | "TILL"; accountNumber: string; accountName?: string }) {
+    return this.request(`/api/organizations/${orgId}/payment-account`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  getPaymentAccount(orgId: string) {
+    return this.request(`/api/organizations/${orgId}/payment-account`);
+  },
+
+  // User Management
+  inviteUser(orgId: string, data: { email: string; departmentId?: string; role?: "MEMBER" | "ADMIN" }) {
+    return this.request(`/api/organizations/${orgId}/invitations`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  listInvitations(orgId: string) {
+    return this.request(`/api/organizations/${orgId}/invitations`);
+  },
+
+  listMembers(orgId: string) {
+    return this.request(`/api/organizations/${orgId}/members`);
+  },
+
+  removeMember(orgId: string, userId: string) {
+    return this.request(`/api/organizations/${orgId}/members/${userId}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Notifications
+  getNotifications() {
+    return this.request("/api/notifications");
+  },
+
+  markNotificationAsRead(notificationId: string) {
+    return this.request(`/api/notifications/${notificationId}/read`, {
+      method: "POST",
+    });
+  },
+
+  markAllNotificationsAsRead() {
+    return this.request("/api/notifications/read-all", {
+      method: "POST",
     });
   },
 };

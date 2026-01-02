@@ -7,6 +7,7 @@ import { useOrg } from "@/lib/org-context";
 import { apiClient } from "@/lib/api-client";
 import { OnboardingView } from "@/components/onboarding/onboarding-view";
 import { OnboardingTutorial } from "@/components/onboarding/onboarding-tutorial";
+import { CreateDepartmentModal } from "@/components/modals/create-department-modal";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -16,9 +17,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showCreateDeptModal, setShowCreateDeptModal] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const mobileDrawerRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const { user, activeOrgId, activeOrg, activeDeptId, departments, setActiveOrgId, setActiveDeptId, reset, isLoading } = useOrg();
+  const { user, activeOrgId, activeOrg, activeDeptId, departments, setActiveOrgId, setActiveDeptId, reset, isLoading, refetchOrgs } = useOrg();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -31,6 +35,27 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       }
     }
   }, [isLoading, user, activeOrg]);
+
+  // Load notifications
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const response = await apiClient.getNotifications();
+        const notifs = (response as any).notifications || [];
+        setNotifications(notifs);
+        setUnreadCount(notifs.filter((n: any) => !n.read).length);
+      } catch (_) {
+        // Silently fail if notifications endpoint not available
+      }
+    };
+
+    if (user) {
+      loadNotifications();
+      // Poll for new notifications every 30 seconds
+      const interval = setInterval(loadNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   if (!user) {
     return null;
@@ -244,7 +269,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Departments</label>
                 {isChiefAdmin && (
                   <button
-                    onClick={() => {/* TODO: Open create department modal */}}
+                    onClick={() => setShowCreateDeptModal(true)}
                     className="p-1 rounded hover:bg-primary/10 text-primary transition-colors"
                     title="Create Department"
                   >
@@ -277,7 +302,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   </p>
                   {isChiefAdmin && (
                     <button
-                      onClick={() => {/* TODO: Open create department modal */}}
+                      onClick={() => setShowCreateDeptModal(true)}
                       className="text-xs text-primary hover:underline font-semibold"
                     >
                       Create Department
@@ -419,7 +444,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <label className="text-xs font-bold text-text-muted uppercase tracking-wide">Departments</label>
                 {isChiefAdmin && (
                   <button
-                    onClick={() => {/* TODO: Open create department modal */}}
+                    onClick={() => {
+                      setShowCreateDeptModal(true);
+                      setMobileMenuOpen(false);
+                    }}
                     className="p-1 rounded hover:bg-primary/10 text-primary transition-colors"
                     title="Create Department"
                   >
@@ -506,20 +534,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Top Bar Actions */}
           <div className="flex items-center gap-4">
             {/* Notifications */}
-            <button className="relative p-2 rounded-lg hover:bg-background transition-colors group">
+            <button 
+              onClick={() => router.push("/notifications")}
+              className="relative p-2 rounded-lg hover:bg-background transition-colors group"
+              title="Notifications"
+            >
               <svg className="w-6 h-6 text-text-muted group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              )}
             </button>
 
             {/* User Profile - Desktop Only */}
-            <div className="hidden lg:flex items-center gap-3 px-3 py-2 bg-background rounded-button">
+            <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-background rounded-button hover:bg-background/80 transition-colors cursor-pointer group" onClick={() => router.push("/profile")}>
               <div className="w-9 h-9 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-soft">
                 {user.email.substring(0, 2).toUpperCase()}
               </div>
               <div>
-                <p className="text-sm font-semibold text-text-primary">{user.email}</p>
+                <p className="text-sm font-semibold text-text-primary group-hover:text-primary">{user.email}</p>
                 {activeOrg && (
                   <p className="text-xs text-text-muted">{activeOrg.name}</p>
                 )}
@@ -541,6 +575,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <OnboardingTutorial
           userRole={userRole as "CHIEF_ADMIN" | "ADMIN" | "MEMBER"}
           onComplete={() => setShowTutorial(false)}
+        />
+      )}
+
+      {/* Create Department Modal */}
+      {showCreateDeptModal && (
+        <CreateDepartmentModal
+          onClose={() => setShowCreateDeptModal(false)}
+          onSuccess={() => {
+            refetchOrgs();
+            setShowCreateDeptModal(false);
+          }}
         />
       )}
     </div>

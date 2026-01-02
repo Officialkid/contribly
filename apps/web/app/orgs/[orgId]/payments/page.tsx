@@ -15,6 +15,7 @@ export default function PaymentsPage() {
 
   const [formData, setFormData] = useState({
     amount: "",
+    currency: "KES",
     reference: "",
     transactionDate: new Date().toISOString().split("T")[0],
     departmentId: "",
@@ -43,6 +44,7 @@ export default function PaymentsPage() {
     try {
       await apiClient.recordPayment(activeOrgId, {
         amount: amountCents.toString(),
+        currency: formData.currency,
         reference: formData.reference,
         transactionDate: new Date(formData.transactionDate).toISOString(),
         departmentId: formData.departmentId,
@@ -51,6 +53,7 @@ export default function PaymentsPage() {
       setSuccess("Payment recorded successfully!");
       setFormData({
         amount: "",
+        currency: "KES",
         reference: "",
         transactionDate: new Date().toISOString().split("T")[0],
         departmentId: "",
@@ -128,7 +131,7 @@ export default function PaymentsPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="label">Amount (₦)</label>
+                  <label className="label">Amount</label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,6 +149,19 @@ export default function PaymentsPage() {
                       required
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="label">Currency</label>
+                  <select
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-background border-2 border-border rounded-button text-text-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                  >
+                    <option value="KES">Kenyan Shilling (KES)</option>
+                    <option value="USD">US Dollar (USD)</option>
+                  </select>
                 </div>
 
                 <div>

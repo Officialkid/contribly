@@ -88,24 +88,23 @@ export function DeptAdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-text-primary">{summary.name}</h1>
-          <p className="text-text-muted mt-1">Department administration for {year}</p>
+          <p className="text-text-muted mt-1">Department administration</p>
         </div>
-        {/* Year Selector */}
-        <div className="flex items-center gap-3 bg-card border border-border rounded-button p-1 shadow-soft">
-          <button
-            onClick={() => setYear(year - 1)}
-            className="px-4 py-2 rounded-button text-sm font-semibold text-text-muted hover:bg-primary/5 hover:text-primary transition-all"
-          >
-            ← {year - 1}
-          </button>
-          <span className="px-4 py-2 text-primary font-bold">{year}</span>
-          <button
-            onClick={() => setYear(year + 1)}
-            className="px-4 py-2 rounded-button text-sm font-semibold text-text-muted hover:bg-primary/5 hover:text-primary transition-all"
-          >
-            {year + 1} →
-          </button>
-        </div>
+        {/* Year Selector Dropdown */}
+        <select
+          value={year}
+          onChange={(e) => setYear(parseInt(e.target.value))}
+          className="px-4 py-2 bg-card border-2 border-border rounded-button text-sm font-semibold text-text-primary focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
+        >
+          {Array.from({ length: 5 }, (_, i) => {
+            const y = new Date().getFullYear() - 2 + i;
+            return (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            );
+          })}
+        </select>
       </div>
 
       {/* Department Stats */}
