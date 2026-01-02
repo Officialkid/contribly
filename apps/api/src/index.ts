@@ -16,6 +16,7 @@ const allowedOrigins = [
   "http://localhost:3001",                    // Local API dev
   "https://contribly-web.vercel.app",         // Vercel production
   "https://contribly-web.onrender.com",       // Render production (if used later)
+  "https://contribly.onrender.com",           // Render frontend (current)
   process.env.FRONTEND_URL,                   // Any custom frontend URL from env
 ].filter(Boolean);
 
