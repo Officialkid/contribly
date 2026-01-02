@@ -84,7 +84,7 @@ void (async () => {
     const claimRoutes = (await import("./routes/claim.routes.js")).default;
     console.log("✓ Claim routes loaded");
 
-    app.use("/api", authRoutes);
+    app.use("/api/auth", authRoutes);
     app.use("/api", organizationRoutes);
     app.use("/api", paymentRoutes);
     app.use("/api", claimRoutes);

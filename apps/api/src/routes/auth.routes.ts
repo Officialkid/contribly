@@ -27,6 +27,48 @@ router.post("/auth/register", async (req: AuthRequest, res: Response) => {
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
+
+    return res.status(201).json({
+      success: true,
+      user: result.user,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "Registration failed" });
+  }
+});
+
+// LOGIN
+router.post("/auth/login", async (req: AuthRequest, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: "Email and password required" });
+    }
+
+    const result = await loginUser(email, password);
+
+    if (!result.success) {
+      return res.status(401).json(result);
+    }
+
+    // Set HTTP-only cookie
+    res.cookie("token", result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    return res.json({
+      success: true,
+      user: result.user,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "Login failed" });
+  }
+});
+
 // GOOGLE OAuth - Initiate authentication
 router.get(
   "/auth/google",
@@ -73,80 +115,6 @@ router.get(
     }
   }
 );
-
-
-    return res.status(201).json({
-      success: true,
-      user: result.user,
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "Registration failed" });
-  }
-});
-
-// LOGIN
-router.post("/auth/login", async (req: AuthRequest, res: Response) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: "Email and password required" });
-    }
-
-    const result = await loginUser(email, password);
-
-    if (!result.success) {
-      return res.status(401).json(result);
-    }
-
-    // Set HTTP-only cookie
-    res.cookie("token", result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    return res.json({
-      success: true,
-      user: result.user,
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "Login failed" });
-  }
-});
-
-// GOOGLE OAuth CALLBACK
-router.post("/auth/google", async (req: AuthRequest, res: Response) => {
-  try {
-    const { id, email, name, picture } = req.body;
-
-    if (!id || !email) {
-      return res.status(400).json({ success: false, error: "Invalid Google OAuth payload" });
-    }
-
-    const result = await googleOAuthUser({ id, email, name, picture });
-
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-
-    // Set HTTP-only cookie
-    res.cookie("token", result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    return res.json({
-      success: true,
-      user: result.user,
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "Google OAuth failed" });
-  }
-});
 
 // GET CURRENT USER
 router.get("/auth/me", authMiddleware, async (req: AuthRequest, res: Response) => {
