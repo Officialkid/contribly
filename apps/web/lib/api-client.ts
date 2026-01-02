@@ -42,47 +42,48 @@ export const apiClient = {
   },
 
   // Auth
-  async register(email: string, password: string, name?: string) {
-    return this.request<AuthResponse>("/auth/register", {
+  async register(data: { email: string; password: string; firstName?: string; lastName?: string }) {
+    const name = [data.firstName, data.lastName].filter(Boolean).join(" ") || undefined;
+    return this.request<AuthResponse>("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email: data.email, password: data.password, name }),
     });
   },
 
   async login(email: string, password: string) {
-    return this.request<AuthResponse>("/auth/login", {
+    return this.request<AuthResponse>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
   },
 
   async logout() {
-    return this.request<{ success: boolean }>("/auth/logout", { method: "POST" });
+    return this.request<{ success: boolean }>("/api/auth/logout", { method: "POST" });
   },
 
   async getMe() {
-    return this.request<{ id: string; email: string; name: string | null }>("/auth/me");
+    return this.request<{ id: string; email: string; name: string | null }>("/api/auth/me");
   },
 
   // Organizations
   createOrganization(name: string) {
-    return this.request("/organizations", {
+    return this.request("/api/organizations", {
       method: "POST",
       body: JSON.stringify({ name }),
     });
   },
 
   listOrganizations() {
-    return this.request("/organizations");
+    return this.request("/api/organizations");
   },
 
   getOrganization(orgId: string) {
-    return this.request(`/organizations/${orgId}`, { orgId });
+    return this.request(`/api/organizations/${orgId}`, { orgId });
   },
 
   // Departments
   createDepartment(orgId: string, name: string, monthlyContribution?: string) {
-    return this.request(`/organizations/${orgId}/departments`, {
+    return this.request(`/api/organizations/${orgId}/departments`, {
       method: "POST",
       body: JSON.stringify({ name, monthlyContribution }),
       orgId,
@@ -90,11 +91,11 @@ export const apiClient = {
   },
 
   listDepartments(orgId: string) {
-    return this.request(`/organizations/${orgId}/departments`, { orgId });
+    return this.request(`/api/organizations/${orgId}/departments`, { orgId });
   },
 
   updateDepartment(orgId: string, deptId: string, data: { name?: string; monthlyContribution?: string }) {
-    return this.request(`/organizations/${orgId}/departments/${deptId}`, {
+    return this.request(`/api/organizations/${orgId}/departments/${deptId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
       orgId,
@@ -104,7 +105,7 @@ export const apiClient = {
 
   // Invites
   acceptInvite(code: string, email?: string, password?: string, name?: string) {
-    return this.request("/invites/accept", {
+    return this.request("/api/invites/accept", {
       method: "POST",
       body: JSON.stringify({ code, email, password, name }),
     });
@@ -112,7 +113,7 @@ export const apiClient = {
 
   // Payments
   recordPayment(orgId: string, amount: string, reference?: string, accountNumber?: string, transactionDate?: string) {
-    return this.request(`/organizations/${orgId}/payments`, {
+    return this.request(`/api/organizations/${orgId}/payments`, {
       method: "POST",
       body: JSON.stringify({ amount, reference, accountNumber, transactionDate: transactionDate || new Date().toISOString() }),
       orgId,
@@ -121,11 +122,11 @@ export const apiClient = {
 
   listPayments(orgId: string, status?: string) {
     const query = status ? `?status=${status}` : "";
-    return this.request(`/organizations/${orgId}/payments${query}`, { orgId });
+    return this.request(`/api/organizations/${orgId}/payments${query}`, { orgId });
   },
 
   matchPayment(orgId: string, paymentId: string, userId: string, departmentId: string) {
-    return this.request(`/organizations/${orgId}/payments/${paymentId}/match`, {
+    return this.request(`/api/organizations/${orgId}/payments/${paymentId}/match`, {
       method: "POST",
       body: JSON.stringify({ userId, departmentId }),
       orgId,
@@ -133,7 +134,7 @@ export const apiClient = {
   },
 
   matchPaymentByReference(orgId: string, paymentId: string, departmentId: string, paymentReference: string) {
-    return this.request(`/organizations/${orgId}/payments/${paymentId}/match-by-reference`, {
+    return this.request(`/api/organizations/${orgId}/payments/${paymentId}/match-by-reference`, {
       method: "POST",
       body: JSON.stringify({ departmentId, paymentReference }),
       orgId,
@@ -142,21 +143,21 @@ export const apiClient = {
 
   getContributionsSummary(orgId: string, year?: number) {
     const query = year ? `?year=${year}` : "";
-    return this.request(`/organizations/${orgId}/contributions${query}`, { orgId });
+    return this.request(`/api/organizations/${orgId}/contributions${query}`, { orgId });
   },
 
   getDepartmentContributions(orgId: string, deptId: string, year?: number) {
     const query = year ? `?year=${year}` : "";
-    return this.request(`/organizations/${orgId}/departments/${deptId}/contributions${query}`, { orgId, deptId });
+    return this.request(`/api/organizations/${orgId}/departments/${deptId}/contributions${query}`, { orgId, deptId });
   },
 
   getMemberBalance(orgId: string, deptId: string, userId: string) {
-    return this.request(`/organizations/${orgId}/departments/${deptId}/balance?userId=${userId}`, { orgId, deptId });
+    return this.request(`/api/organizations/${orgId}/departments/${deptId}/balance?userId=${userId}`, { orgId, deptId });
   },
 
   // Claims
   submitClaim(orgId: string, deptId: string, paymentId: string, transactionCode: string, details?: string) {
-    return this.request(`/organizations/${orgId}/departments/${deptId}/claims`, {
+    return this.request(`/api/organizations/${orgId}/departments/${deptId}/claims`, {
       method: "POST",
       body: JSON.stringify({ paymentId, transactionCode, details }),
       orgId,
@@ -166,18 +167,18 @@ export const apiClient = {
 
   listClaims(orgId: string, deptId: string, status?: string) {
     const query = status ? `?status=${status}` : "";
-    return this.request(`/organizations/${orgId}/departments/${deptId}/claims${query}`, { orgId, deptId });
+    return this.request(`/api/organizations/${orgId}/departments/${deptId}/claims${query}`, { orgId, deptId });
   },
 
   approveClaim(orgId: string, claimId: string) {
-    return this.request(`/organizations/${orgId}/claims/${claimId}/approve`, {
+    return this.request(`/api/organizations/${orgId}/claims/${claimId}/approve`, {
       method: "POST",
       orgId,
     });
   },
 
   rejectClaim(orgId: string, claimId: string, reason?: string) {
-    return this.request(`/organizations/${orgId}/claims/${claimId}/reject`, {
+    return this.request(`/api/organizations/${orgId}/claims/${claimId}/reject`, {
       method: "POST",
       body: JSON.stringify({ reason }),
       orgId,
@@ -186,7 +187,7 @@ export const apiClient = {
 
   // Withdrawals
   requestWithdrawal(orgId: string, deptId: string, amount: string, reason: string) {
-    return this.request(`/withdrawals`, {
+    return this.request(`/api/withdrawals`, {
       method: "POST",
       body: JSON.stringify({ departmentId: deptId, amount, reason }),
       orgId,
@@ -195,18 +196,18 @@ export const apiClient = {
   },
 
   listWithdrawals(orgId: string) {
-    return this.request(`/organizations/${orgId}/withdrawals`, { orgId });
+    return this.request(`/api/organizations/${orgId}/withdrawals`, { orgId });
   },
 
   approveWithdrawal(orgId: string, withdrawalId: string) {
-    return this.request(`/withdrawals/${withdrawalId}/approve`, {
+    return this.request(`/api/withdrawals/${withdrawalId}/approve`, {
       method: "POST",
       orgId,
     });
   },
 
   rejectWithdrawal(orgId: string, withdrawalId: string, reason?: string) {
-    return this.request(`/withdrawals/${withdrawalId}/reject`, {
+    return this.request(`/api/withdrawals/${withdrawalId}/reject`, {
       method: "POST",
       body: JSON.stringify({ reason }),
       orgId,
