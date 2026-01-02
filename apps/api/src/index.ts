@@ -6,9 +6,24 @@ import cors from "cors";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// CORS configuration - allow both localhost and production URLs
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://contribly-web.vercel.app",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
