@@ -5,15 +5,15 @@ import {
   rejectWithdrawal,
   verifyWithdrawalOTP,
   resendWithdrawalOTP,
-} from "../services/withdrawal.service";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+} from "../services/withdrawal.service.js";
+import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
 import {
   organizationContextMiddleware,
   departmentContextMiddleware,
   requireChiefAdmin,
   requireDepartmentMember,
-} from "../middleware/context.middleware";
-import { getUserContext } from "../utils/context";
+} from "../middleware/context.middleware.js";
+import { getUserContext } from "../utils/context.js";
 
 const router = Router();
 

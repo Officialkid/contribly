@@ -1,6 +1,6 @@
 import { NextFunction, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { AuthRequest, OrganizationContext, DepartmentContext } from "./auth.middleware";
+import { AuthRequest, OrganizationContext, DepartmentContext } from "./auth.middleware.js";
 
 const prisma = new PrismaClient();
 const ORG_HEADER = "x-organization-id";

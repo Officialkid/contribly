@@ -37,10 +37,10 @@ app.get("/api", (req, res) => {
 // Try to load routes if database is available (ESM-friendly dynamic import)
 void (async () => {
   try {
-    const authRoutes = (await import("./routes/auth.routes")).default;
-    const organizationRoutes = (await import("./routes/organization.routes")).default;
-    const paymentRoutes = (await import("./routes/payment.routes")).default;
-    const claimRoutes = (await import("./routes/claim.routes")).default;
+    const authRoutes = (await import("./routes/auth.routes.js")).default;
+    const organizationRoutes = (await import("./routes/organization.routes.js")).default;
+    const paymentRoutes = (await import("./routes/payment.routes.js")).default;
+    const claimRoutes = (await import("./routes/claim.routes.js")).default;
 
     app.use(authRoutes);
     app.use(organizationRoutes);

@@ -1,8 +1,8 @@
 import { Router, Response } from "express";
-import { setChiefAdminPIN, hasPINSet } from "../services/pin.service";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
-import { organizationContextMiddleware, requireChiefAdmin } from "../middleware/context.middleware";
-import { getUserContext } from "../utils/context";
+import { setChiefAdminPIN, hasPINSet } from "../services/pin.service.js";
+import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
+import { organizationContextMiddleware, requireChiefAdmin } from "../middleware/context.middleware.js";
+import { getUserContext } from "../utils/context.js";
 
 const router = Router();
 

@@ -1,12 +1,12 @@
 import { Router, Response } from "express";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
 import {
   organizationContextMiddleware,
   departmentContextMiddleware,
   requireChiefAdmin,
   requireDepartmentAdmin,
   requireDepartmentMember,
-} from "../middleware/context.middleware";
+} from "../middleware/context.middleware.js";
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import { Router, Response } from "express";
-import { registerUser, loginUser, googleOAuthUser } from "../services/auth.service";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+import { registerUser, loginUser, googleOAuthUser } from "../services/auth.service.js";
+import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
 
 const router = Router();
 

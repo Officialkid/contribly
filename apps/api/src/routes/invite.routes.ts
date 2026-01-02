@@ -1,6 +1,6 @@
 import { Router, Response } from "express";
-import { AuthRequest } from "../middleware/auth.middleware";
-import { acceptInvite } from "../services/invite.service";
+import { AuthRequest } from "../middleware/auth.middleware.js";
+import { acceptInvite } from "../services/invite.service.js";
 
 const router = Router();
 

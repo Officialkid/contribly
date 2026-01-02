@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, ClaimStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -97,7 +97,6 @@ export async function approveClaim(
     where: { id: claimId },
     include: {
       payment: true,
-      department: true,
     },
   });
 

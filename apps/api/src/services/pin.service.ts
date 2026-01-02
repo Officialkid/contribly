@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { hashPIN, verifyPIN, validatePIN } from "../utils/pin";
+import { hashPIN, verifyPIN, validatePIN } from "../utils/pin.js";
 
 const prisma = new PrismaClient();
 

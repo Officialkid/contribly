@@ -1,26 +1,26 @@
 import { Router, Response } from "express";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
 import {
   organizationContextMiddleware,
   departmentContextMiddleware,
   requireChiefAdmin,
   requireDepartmentMember,
-} from "../middleware/context.middleware";
+} from "../middleware/context.middleware.js";
 import {
   recordPayment,
   listPaymentsByOrganization,
   getPaymentById,
-} from "../services/payment.service";
+} from "../services/payment.service.js";
 import {
   matchPayment,
   matchPaymentByReference,
   unmatchPayment,
-} from "../services/matching.service";
+} from "../services/matching.service.js";
 import {
   getMemberBalanceInDepartment,
   getDepartmentContributionsSummary,
   listMemberBalancesInOrganization,
-} from "../services/carryforward.service";
+} from "../services/carryforward.service.js";
 
 const router = Router();
 

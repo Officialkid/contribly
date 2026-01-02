@@ -1,17 +1,17 @@
 import { Router, Response } from "express";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
 import {
   organizationContextMiddleware,
   departmentContextMiddleware,
   requireChiefAdmin,
   requireDepartmentMember,
-} from "../middleware/context.middleware";
+} from "../middleware/context.middleware.js";
 import {
   submitPaymentClaim,
   listClaimsByDepartment,
   approveClaim,
   rejectClaim,
-} from "../services/claim.service";
+} from "../services/claim.service.js";
 
 const router = Router();
 

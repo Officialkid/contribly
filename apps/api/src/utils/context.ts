@@ -1,4 +1,4 @@
-import { AuthRequest, OrganizationRole, DepartmentRole } from "../middleware/auth.middleware";
+import { AuthRequest, OrganizationRole, DepartmentRole } from "../middleware/auth.middleware.js";
 
 export interface UserContext {
   userId: string;

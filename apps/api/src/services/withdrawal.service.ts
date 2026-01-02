@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { generateOTP, isOTPExpired, verifyOTPCode } from "../utils/otp";
-import { sendOTPEmail, sendWithdrawalApprovedEmail } from "./email.service";
-import { createAuditLog } from "./audit.service";
+import { Decimal } from "@prisma/client/runtime/library";
+import { generateOTP, isOTPExpired, verifyOTPCode } from "../utils/otp.js";
+import { sendOTPEmail, sendWithdrawalApprovedEmail } from "./email.service.js";
+import { createAuditLog } from "./audit.service.js";
 
 const prisma = new PrismaClient();
 
@@ -315,6 +316,3 @@ export async function resendWithdrawalOTP(
     return { success: false, error: String(error) };
   }
 }
-
-// Import Decimal for proper decimal arithmetic
-import { Decimal } from "@prisma/client/runtime/library";

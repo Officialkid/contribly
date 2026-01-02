@@ -1,24 +1,24 @@
 import { Router, Response } from "express";
-import { authMiddleware, AuthRequest } from "../middleware/auth.middleware";
+import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
 import {
   organizationContextMiddleware,
   departmentContextMiddleware,
   requireChiefAdmin,
   requireDepartmentAdmin,
-} from "../middleware/context.middleware";
+} from "../middleware/context.middleware.js";
 import {
   createOrganization,
   listOrganizationsForUser,
   getOrganizationForUser,
-} from "../services/organization.service";
+} from "../services/organization.service.js";
 import {
   createDepartment,
   updateDepartment,
   listDepartments,
   assignDepartmentAdmin,
   removeDepartmentAdmin,
-} from "../services/department.service";
-import { createInviteLink } from "../services/invite.service";
+} from "../services/department.service.js";
+import { createInviteLink } from "../services/invite.service.js";
 
 const router = Router();
 
