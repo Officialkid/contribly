@@ -6,7 +6,7 @@ import passport from "../utils/passport.js";
 const router = Router();
 
 // REGISTER
-router.post("/auth/register", async (req: AuthRequest, res: Response) => {
+router.post("/register", async (req: AuthRequest, res: Response) => {
   try {
     const { email, password, organizationName } = req.body;
 
@@ -38,7 +38,7 @@ router.post("/auth/register", async (req: AuthRequest, res: Response) => {
 });
 
 // LOGIN
-router.post("/auth/login", async (req: AuthRequest, res: Response) => {
+router.post("/login", async (req: AuthRequest, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -71,7 +71,7 @@ router.post("/auth/login", async (req: AuthRequest, res: Response) => {
 
 // GOOGLE OAuth - Initiate authentication
 router.get(
-  "/auth/google",
+  "/google",
   passport.authenticate("google", { 
     scope: ["profile", "email"],
     session: false,
@@ -80,7 +80,7 @@ router.get(
 
 // GOOGLE OAuth - Callback
 router.get(
-  "/auth/google/callback",
+  "/google/callback",
   passport.authenticate("google", { 
     session: false,
     failureRedirect: process.env.FRONTEND_URL || "http://localhost:3000",
@@ -117,7 +117,7 @@ router.get(
 );
 
 // GET CURRENT USER
-router.get("/auth/me", authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get("/me", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) {
@@ -164,7 +164,7 @@ router.get("/auth/me", authMiddleware, async (req: AuthRequest, res: Response) =
 });
 
 // LOGOUT
-router.post("/auth/logout", (req: AuthRequest, res: Response) => {
+router.post("/logout", (req: AuthRequest, res: Response) => {
   res.clearCookie("token");
   return res.json({ success: true });
 });
