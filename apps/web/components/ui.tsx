@@ -3,7 +3,7 @@
 import React from "react";
 
 interface CardProps {
-  title: string;
+  title?: string;
   children: React.ReactNode;
   className?: string;
 }
@@ -11,7 +11,7 @@ interface CardProps {
 export function Card({ title, children, className }: CardProps) {
   return (
     <div className={`bg-white rounded-lg shadow p-6 ${className}`}>
-      <h2 className="text-lg font-semibold text-slate-900 mb-4">{title}</h2>
+      {title && <h2 className="text-lg font-semibold text-slate-900 mb-4">{title}</h2>}
       {children}
     </div>
   );

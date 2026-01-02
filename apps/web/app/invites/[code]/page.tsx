@@ -65,27 +65,31 @@ export default function AcceptInvitePage() {
     setRegisterLoading(true);
 
     try {
-      const response = await apiClient.register({
-        email: registerData.email,
-        password: registerData.password,
-        firstName: registerData.firstName,
-        lastName: registerData.lastName,
-      });
+      const response = (await apiClient.register(
+        registerData.email,
+        registerData.password,
+        registerData.firstName || registerData.lastName
+          ? `${registerData.firstName || ""} ${registerData.lastName || ""}`.trim()
+          : undefined
+      )) as any;
 
       // Now accept the invite
-      if (response.user) {
-        const inviteResponse = await apiClient.acceptInvite(code, {
-          token: undefined, // New user registration
-        });
+      if (response?.user) {
+        const inviteResponse = (await apiClient.acceptInvite(
+          code,
+          registerData.email,
+          registerData.password
+        )) as any;
 
-        if (inviteResponse.user) {
+        if (inviteResponse?.user) {
           router.push(
             `/orgs/${inviteResponse.user.organizationId}?welcome=true`
           );
         }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+    } catch (err: unknown) {
+      const message = (err as { message?: string }).message || String(err) || "Registration failed";
+      setError(message);
     } finally {
       setRegisterLoading(false);
     }
@@ -98,23 +102,22 @@ export default function AcceptInvitePage() {
 
     try {
       // First login
-      const loginResponse = await apiClient.login(
+      const loginResponse = (await apiClient.login(
         existingData.email,
         existingData.password
-      );
+      )) as any;
 
-      if (loginResponse.user) {
+      if (loginResponse?.user) {
         // Then accept invite
-        const inviteResponse = await apiClient.acceptInvite(code, {
-          token: undefined,
-        });
+        const inviteResponse = (await apiClient.acceptInvite(code)) as any;
 
-        if (inviteResponse.user) {
+        if (inviteResponse?.user) {
           router.push(`/orgs/${inviteResponse.user.organizationId}`);
         }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to accept invite");
+    } catch (err: unknown) {
+      const message = (err as { message?: string }).message || String(err) || "Failed to accept invite";
+      setError(message);
     } finally {
       setExistingLoading(false);
     }

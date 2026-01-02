@@ -1,7 +1,15 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+// Type helpers
+export interface AuthResponse {
+  success: boolean;
+  token?: string;
+  user?: { id: string; email: string; name: string | null };
+  error?: string;
+}
+
 export const apiClient = {
-  async request<T>(
+  async request<T = unknown>(
     endpoint: string,
     options?: RequestInit & { orgId?: string; deptId?: string }
   ): Promise<T> {
@@ -13,10 +21,10 @@ export const apiClient = {
     };
 
     if (orgId) {
-      requestHeaders["x-organization-id"] = orgId;
+      (requestHeaders as Record<string, string>)["x-organization-id"] = orgId;
     }
     if (deptId) {
-      requestHeaders["x-department-id"] = deptId;
+      (requestHeaders as Record<string, string>)["x-department-id"] = deptId;
     }
 
     const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -34,26 +42,26 @@ export const apiClient = {
   },
 
   // Auth
-  register(email: string, password: string, name?: string) {
-    return this.request("/auth/register", {
+  async register(email: string, password: string, name?: string) {
+    return this.request<AuthResponse>("/auth/register", {
       method: "POST",
       body: JSON.stringify({ email, password, name }),
     });
   },
 
-  login(email: string, password: string) {
-    return this.request("/auth/login", {
+  async login(email: string, password: string) {
+    return this.request<AuthResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
   },
 
-  logout() {
-    return this.request("/auth/logout", { method: "POST" });
+  async logout() {
+    return this.request<{ success: boolean }>("/auth/logout", { method: "POST" });
   },
 
-  getMe() {
-    return this.request("/auth/me");
+  async getMe() {
+    return this.request<{ id: string; email: string; name: string | null }>("/auth/me");
   },
 
   // Organizations
