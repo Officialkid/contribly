@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import { verifyToken, JWTPayload } from "../utils/jwt.js";
 
 export type OrganizationRole = "CHIEF_ADMIN" | "MEMBER";
@@ -29,22 +29,27 @@ export interface AuthRequest extends Request {
   departmentContext?: DepartmentContext;
 }
 
-export async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+// Type helper for route handlers that use AuthRequest
+export type AuthHandler = RequestHandler<any, any, any, any, AuthRequest>;
+
+export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction): void {
   try {
     const token = req.cookies?.token || req.headers.authorization?.replace("Bearer ", "");
 
     if (!token) {
-      return res.status(401).json({ success: false, error: "No authentication token" });
+      res.status(401).json({ success: false, error: "No authentication token" });
+      return;
     }
 
     const payload = verifyToken(token);
     if (!payload) {
-      return res.status(401).json({ success: false, error: "Invalid or expired token" });
+      res.status(401).json({ success: false, error: "Invalid or expired token" });
+      return;
     }
 
     req.user = payload;
     next();
   } catch (error) {
-    return res.status(401).json({ success: false, error: "Authentication failed" });
+    res.status(401).json({ success: false, error: "Authentication failed" });
   }
 }
