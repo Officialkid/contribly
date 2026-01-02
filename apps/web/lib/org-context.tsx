@@ -31,9 +31,14 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     const initUser = async () => {
       try {
         const response = await apiClient.getMe();
-        setUser(response.user);
-        if (response.user?.organizations?.[0]) {
-          setActiveOrgId(response.user.organizations[0].id);
+        const organizations = Array.isArray(response.user?.organizations)
+          ? response.user.organizations
+          : [];
+
+        setUser({ ...response.user, organizations });
+
+        if (organizations[0]) {
+          setActiveOrgId(organizations[0].id);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load user");
@@ -71,15 +76,28 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   const refetchOrgs = async () => {
     try {
       const response = await apiClient.listOrganizations();
-      if (response.organizations?.[0]) {
-        setActiveOrgId(response.organizations[0].id);
+      const organizations = Array.isArray(response.organizations)
+        ? response.organizations
+        : [];
+
+      if (organizations[0]) {
+        setActiveOrgId(organizations[0].id);
       }
+
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              organizations,
+            }
+          : prev,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to refetch orgs");
     }
   };
 
-  const activeOrg = user?.organizations.find((o) => o.id === activeOrgId) || null;
+  const activeOrg = (user?.organizations ?? []).find((o) => o.id === activeOrgId) || null;
 
   return (
     <OrgContext.Provider
