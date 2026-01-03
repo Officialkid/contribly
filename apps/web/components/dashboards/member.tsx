@@ -25,8 +25,8 @@ export function MemberDashboard() {
         const response = await apiClient.getMemberBalance(activeOrgId, activeDeptId, user.id);
         setBalance(response.balance);
         setError(null);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to load balance";
+      } catch (err: unknown) {
+        const message = (err as { message?: string })?.message ?? "Failed to load balance";
         setError(message);
         setToast(message);
       } finally {

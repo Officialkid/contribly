@@ -60,8 +60,9 @@ export default function PaymentsPage() {
       });
       setShowForm(false);
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to record payment");
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to record payment";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

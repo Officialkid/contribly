@@ -21,8 +21,9 @@ export function PaymentsView() {
         setIsLoading(true);
         const response = await apiClient.listPayments(activeOrgId, filter || undefined);
         setPayments(response.payments || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load payments");
+      } catch (err: unknown) {
+        const message = (err as { message?: string })?.message ?? "Failed to load payments";
+        setError(message);
       } finally {
         setIsLoading(false);
       }

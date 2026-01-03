@@ -23,18 +23,18 @@ export default function WithdrawalsPage() {
         setIsLoading(true);
 
         // Fetch balance
-        const balanceResponse = await apiClient.getMemberBalance(activeOrgId, {
-          departmentId: activeDeptId,
-        });
-        setBalance(balanceResponse.balance || 0);
+        const balanceResponse = await apiClient.getMemberBalance(activeOrgId, activeDeptId, user?.id);
+        const carryForward = balanceResponse.balance?.carryForward ?? 0;
+        setBalance(carryForward);
 
         // Fetch withdrawals
         const withdrawalsResponse = await apiClient.listWithdrawals(activeOrgId, {
           departmentId: activeDeptId,
         });
         setWithdrawals(withdrawalsResponse.withdrawals || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load data");
+      } catch (err: unknown) {
+        const message = (err as { message?: string })?.message ?? "Failed to load data";
+        setError(message);
       } finally {
         setIsLoading(false);
       }
@@ -48,8 +48,10 @@ export default function WithdrawalsPage() {
   if (isLoading) return <Loading message="Loading withdrawals..." />;
   if (error) return <Error message={error} />;
 
-  const pendingWithdrawals = withdrawals.filter((w) => w.status === "PENDING");
-  const approvedWithdrawals = withdrawals.filter((w) => w.status === "APPROVED");
+  const pendingWithdrawals = withdrawals.filter((w) =>
+    w.status === "PENDING_APPROVAL" || w.status === "PENDING_OTP"
+  );
+  const approvedWithdrawals = withdrawals.filter((w) => w.status === "APPROVED" || w.status === "COMPLETED");
 
   return (
     <div className="space-y-8">
@@ -96,7 +98,7 @@ export default function WithdrawalsPage() {
             headers={["Amount", "User", "Status", "Date"]}
             rows={pendingWithdrawals.map((w) => [
               `$${(parseFloat(w.amount) / 100).toFixed(2)}`,
-              w.user?.email || "-",
+              (w as any).user?.email || "-",
               <Badge key="status" status={w.status} />,
               new Date(w.createdAt).toLocaleDateString(),
             ])}
@@ -110,7 +112,7 @@ export default function WithdrawalsPage() {
             headers={["Amount", "User", "Status", "Date"]}
             rows={approvedWithdrawals.map((w) => [
               `$${(parseFloat(w.amount) / 100).toFixed(2)}`,
-              w.user?.email || "-",
+              (w as any).user?.email || "-",
               <Badge key="status" status={w.status} />,
               new Date(w.createdAt).toLocaleDateString(),
             ])}

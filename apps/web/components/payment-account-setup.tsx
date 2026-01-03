@@ -91,8 +91,9 @@ export function PaymentAccountSetup({ activeOrgId }: PaymentAccountSetupProps) {
       setSuccess("Payment account saved successfully!");
       setCurrentAccount({ accountType, accountNumber, accountName, bankName });
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save payment account");
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to save payment account";
+      setError(message);
     } finally {
       setIsSaving(false);
     }

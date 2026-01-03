@@ -1,118 +1,131 @@
+import type {
+  CarryForward,
+  ContributionsSummary,
+  DepartmentContributions,
+  Payment,
+  PaymentClaim,
+  Withdrawal,
+  Department,
+} from "./types";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+// Shared request helper so generic responses stay typed
+async function request<T = unknown>(endpoint: string, options?: RequestInit): Promise<T> {
+  const { headers, ...rest } = options || {};
+
+  const requestHeaders: HeadersInit = {
+    "Content-Type": "application/json",
+    ...headers,
+  };
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...rest,
+    headers: requestHeaders,
+    credentials: "include",
+  });
+
+  const isJson = response.headers.get("content-type")?.includes("application/json");
+  const data = isJson ? await response.json().catch(() => null) : null;
+
+  if (!response.ok) {
+    const message = (data as any)?.error || (data as any)?.message || `API error: ${response.status}`;
+    throw new Error(message);
+  }
+
+  return (data ?? (await response.text())) as T;
+}
 
 // Type helpers
 export interface AuthResponse {
   success: boolean;
-  user?: { id: string; email: string; name: string | null; organizationId?: string };
+  user?: { id: string; email: string; name: string | null; organizationId?: string; departmentId?: string | null; role?: "CHIEF_ADMIN" | "ADMIN" | "MEMBER" };
   error?: string;
 }
 
 export const apiClient = {
-  async request<T = unknown>(
-    endpoint: string,
-    options?: RequestInit
-  ): Promise<T> {
-    const { headers, ...rest } = options || {};
-
-    const requestHeaders: HeadersInit = {
-      "Content-Type": "application/json",
-      ...headers,
-    };
-
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...rest,
-      headers: requestHeaders,
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: "Request failed" }));
-      throw new Error(error.error || `API error: ${response.status}`);
-    }
-
-    return response.json() as Promise<T>;
-  },
+  request,
 
   // Auth
   async register(payload: { email: string; password: string; name: string; organizationName: string }) {
-    return this.request<AuthResponse>("/api/auth/register", {
+    return request<AuthResponse>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
   async login(email: string, password: string) {
-    return this.request<AuthResponse>("/api/auth/login", {
+    return request<AuthResponse>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
   },
 
   async logout() {
-    return this.request<{ success: boolean }>("/api/auth/logout", { method: "POST" });
+    return request<{ success: boolean }>("/api/auth/logout", { method: "POST" });
   },
 
   async getMe() {
-    return this.request<{ success: boolean; user: { id: string; email: string; name?: string | null; organizationId?: string | null; role?: "CHIEF_ADMIN" | "ADMIN" | "MEMBER"; departmentId?: string | null } }>("/api/auth/me");
+    return request<{ success: boolean; user: { id: string; email: string; name?: string | null; organizationId?: string | null; role?: "CHIEF_ADMIN" | "ADMIN" | "MEMBER"; departmentId?: string | null } }>("/api/auth/me");
   },
 
   async forgotPassword(email: string) {
-    return this.request<{ success: boolean; message: string }>("/api/auth/forgot-password", {
+    return request<{ success: boolean; message: string }>("/api/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
   },
 
   async resetPassword(token: string, newPassword: string) {
-    return this.request<{ success: boolean; message: string }>("/api/auth/reset-password", {
+    return request<{ success: boolean; message: string }>("/api/auth/reset-password", {
       method: "POST",
       body: JSON.stringify({ token, newPassword }),
     });
   },
 
   async verifyMFA(code: string) {
-    return this.request<AuthResponse>("/api/auth/verify-mfa", {
+    return request<AuthResponse>("/api/auth/verify-mfa", {
       method: "POST",
       body: JSON.stringify({ code }),
     });
   },
 
   async requestMFACode() {
-    return this.request<{ success: boolean; message: string }>("/api/auth/request-mfa", {
+    return request<{ success: boolean; message: string }>("/api/auth/request-mfa", {
       method: "POST",
     });
   },
 
   // Organizations
   createOrganization(name: string) {
-    return this.request("/api/organizations", {
+    return request("/api/organizations", {
       method: "POST",
       body: JSON.stringify({ name }),
     });
   },
 
   listOrganizations() {
-    return this.request("/api/organizations");
+    return request("/api/organizations");
   },
 
   getOrganization(orgId: string) {
-    return this.request(`/api/organizations/${orgId}`);
+    return request(`/api/organizations/${orgId}`);
   },
 
   // Departments
   createDepartment(orgId: string, data: { name: string; monthlyContribution?: string | null }) {
-    return this.request(`/api/organizations/${orgId}/departments`, {
+    return request(`/api/organizations/${orgId}/departments`, {
       method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   listDepartments(orgId: string) {
-    return this.request(`/api/organizations/${orgId}/departments`);
+    return request<{ departments: Department[] }>(`/api/organizations/${orgId}/departments`);
   },
 
   updateDepartment(orgId: string, deptId: string, data: { name?: string; monthlyContribution?: string }) {
-    return this.request(`/api/organizations/${orgId}/departments/${deptId}`, {
+    return request(`/api/organizations/${orgId}/departments/${deptId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     });
@@ -120,7 +133,7 @@ export const apiClient = {
 
   // Invites
   acceptInvite(code: string, email?: string, password?: string, name?: string) {
-    return this.request("/api/invites/accept", {
+    return request("/api/invites/accept", {
       method: "POST",
       body: JSON.stringify({ code, email, password, name }),
     });
@@ -128,7 +141,7 @@ export const apiClient = {
 
   // Payments
   recordPayment(orgId: string, data: { amount: string; reference?: string; transactionDate?: string; departmentId?: string; currency?: string }) {
-    return this.request(`/api/organizations/${orgId}/payments`, {
+    return request(`/api/organizations/${orgId}/payments`, {
       method: "POST",
       body: JSON.stringify({ ...data, transactionDate: data.transactionDate || new Date().toISOString() }),
     });
@@ -136,18 +149,18 @@ export const apiClient = {
 
   listPayments(orgId: string, status?: string) {
     const query = status ? `?status=${status}` : "";
-    return this.request(`/api/organizations/${orgId}/payments${query}`);
+    return request<{ payments: Payment[] }>(`/api/organizations/${orgId}/payments${query}`);
   },
 
   matchPayment(orgId: string, paymentId: string, userId: string, departmentId: string) {
-    return this.request(`/api/organizations/${orgId}/payments/${paymentId}/match`, {
+    return request(`/api/organizations/${orgId}/payments/${paymentId}/match`, {
       method: "POST",
       body: JSON.stringify({ userId, departmentId }),
     });
   },
 
   matchPaymentByReference(orgId: string, paymentId: string, departmentId: string, paymentReference: string) {
-    return this.request(`/api/organizations/${orgId}/payments/${paymentId}/match-by-reference`, {
+    return request(`/api/organizations/${orgId}/payments/${paymentId}/match-by-reference`, {
       method: "POST",
       body: JSON.stringify({ departmentId, paymentReference }),
     });
@@ -155,21 +168,28 @@ export const apiClient = {
 
   getContributionsSummary(orgId: string, year?: number) {
     const query = year ? `?year=${year}` : "";
-    return this.request(`/api/organizations/${orgId}/contributions${query}`);
+    return request<{ summary: ContributionsSummary }>(
+      `/api/organizations/${orgId}/contributions${query}`,
+    );
   },
 
   getDepartmentContributions(orgId: string, deptId: string, year?: number) {
     const query = year ? `?year=${year}` : "";
-    return this.request(`/api/organizations/${orgId}/departments/${deptId}/contributions${query}`);
+    return request<{ summary: DepartmentContributions }>(
+      `/api/organizations/${orgId}/departments/${deptId}/contributions${query}`,
+    );
   },
 
-  getMemberBalance(orgId: string, deptId: string, userId: string) {
-    return this.request(`/api/organizations/${orgId}/departments/${deptId}/balance?userId=${userId}`);
+  getMemberBalance(orgId: string, departmentId: string, userId?: string) {
+    const query = userId ? `?userId=${userId}` : "";
+    return request<{ balance: CarryForward | null }>(
+      `/api/organizations/${orgId}/departments/${departmentId}/balance${query}`,
+    );
   },
 
   // Claims
   submitClaim(orgId: string, deptId: string, paymentId: string, transactionCode: string, details?: string) {
-    return this.request(`/api/organizations/${orgId}/departments/${deptId}/claims`, {
+    return request(`/api/organizations/${orgId}/departments/${deptId}/claims`, {
       method: "POST",
       body: JSON.stringify({ paymentId, transactionCode, details }),
     });
@@ -177,42 +197,45 @@ export const apiClient = {
 
   listClaims(orgId: string, deptId: string, status?: string) {
     const query = status ? `?status=${status}` : "";
-    return this.request(`/api/organizations/${orgId}/departments/${deptId}/claims${query}`);
+    return request<{ claims: PaymentClaim[] }>(
+      `/api/organizations/${orgId}/departments/${deptId}/claims${query}`,
+    );
   },
 
   approveClaim(orgId: string, claimId: string) {
-    return this.request(`/api/organizations/${orgId}/claims/${claimId}/approve`, {
+    return request(`/api/organizations/${orgId}/claims/${claimId}/approve`, {
       method: "POST",
     });
   },
 
   rejectClaim(orgId: string, claimId: string, reason?: string) {
-    return this.request(`/api/organizations/${orgId}/claims/${claimId}/reject`, {
+    return request(`/api/organizations/${orgId}/claims/${claimId}/reject`, {
       method: "POST",
       body: JSON.stringify({ reason }),
     });
   },
 
   // Withdrawals
-  requestWithdrawal(orgId: string, deptId: string, amount: string, reason: string) {
-    return this.request(`/api/withdrawals`, {
+  requestWithdrawal(orgId: string, data: { departmentId: string; amount: string; reason: string; accountInformation?: string }) {
+    return request(`/api/withdrawals`, {
       method: "POST",
-      body: JSON.stringify({ departmentId: deptId, amount, reason }),
+      body: JSON.stringify(data),
     });
   },
 
-  listWithdrawals(orgId: string) {
-    return this.request(`/api/organizations/${orgId}/withdrawals`);
+  listWithdrawals(orgId: string, opts?: { departmentId?: string }) {
+    const query = opts?.departmentId ? `?departmentId=${opts.departmentId}` : "";
+    return request<{ withdrawals: Withdrawal[] }>(`/api/organizations/${orgId}/withdrawals${query}`);
   },
 
   approveWithdrawal(orgId: string, withdrawalId: string) {
-    return this.request(`/api/withdrawals/${withdrawalId}/approve`, {
+    return request(`/api/withdrawals/${withdrawalId}/approve`, {
       method: "POST",
     });
   },
 
   rejectWithdrawal(orgId: string, withdrawalId: string, reason?: string) {
-    return this.request(`/api/withdrawals/${withdrawalId}/reject`, {
+    return request(`/api/withdrawals/${withdrawalId}/reject`, {
       method: "POST",
       body: JSON.stringify({ reason }),
     });
@@ -220,65 +243,65 @@ export const apiClient = {
 
   // Profile
   updateProfile(data: { name?: string; profileImage?: string }) {
-    return this.request("/api/auth/profile", {
+    return request("/api/auth/profile", {
       method: "PATCH",
       body: JSON.stringify(data),
     });
   },
 
   deleteAccount() {
-    return this.request("/api/auth/account", {
+    return request("/api/auth/account", {
       method: "DELETE",
     });
   },
 
   // Payment Account Settings (Chief Admin)
   setPaymentAccount(orgId: string, data: { accountType: "PAYBILL" | "TILL"; accountNumber: string; accountName?: string }) {
-    return this.request(`/api/organizations/${orgId}/payment-account`, {
+    return request(`/api/organizations/${orgId}/payment-account`, {
       method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   getPaymentAccount(orgId: string) {
-    return this.request(`/api/organizations/${orgId}/payment-account`);
+    return request(`/api/organizations/${orgId}/payment-account`);
   },
 
   // User Management
   inviteUser(orgId: string, data: { email: string; departmentId?: string; role?: "MEMBER" | "ADMIN" }) {
-    return this.request(`/api/organizations/${orgId}/invitations`, {
+    return request(`/api/organizations/${orgId}/invitations`, {
       method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   listInvitations(orgId: string) {
-    return this.request(`/api/organizations/${orgId}/invitations`);
+    return request(`/api/organizations/${orgId}/invitations`);
   },
 
   listMembers(orgId: string) {
-    return this.request(`/api/organizations/${orgId}/members`);
+    return request(`/api/organizations/${orgId}/members`);
   },
 
   removeMember(orgId: string, userId: string) {
-    return this.request(`/api/organizations/${orgId}/members/${userId}`, {
+    return request(`/api/organizations/${orgId}/members/${userId}`, {
       method: "DELETE",
     });
   },
 
   // Notifications
   getNotifications() {
-    return this.request("/api/notifications");
+    return request("/api/notifications");
   },
 
   markNotificationAsRead(notificationId: string) {
-    return this.request(`/api/notifications/${notificationId}/read`, {
+    return request(`/api/notifications/${notificationId}/read`, {
       method: "POST",
     });
   },
 
   markAllNotificationsAsRead() {
-    return this.request("/api/notifications/read-all", {
+    return request("/api/notifications/read-all", {
       method: "POST",
     });
   },

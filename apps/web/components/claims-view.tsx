@@ -23,12 +23,11 @@ export function ClaimsView({ showApprovalActions = false }: ClaimsViewProps) {
     const fetchClaims = async () => {
       try {
         setIsLoading(true);
-        const response = await apiClient.listClaims(activeOrgId, {
-          departmentId: activeDeptId,
-        });
+        const response = await apiClient.listClaims(activeOrgId, activeDeptId);
         setClaims(response.claims || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load claims");
+      } catch (err: unknown) {
+        const message = (err as { message?: string })?.message ?? "Failed to load claims";
+        setError(message);
       } finally {
         setIsLoading(false);
       }
@@ -42,9 +41,10 @@ export function ClaimsView({ showApprovalActions = false }: ClaimsViewProps) {
     setApproving(claimId);
     try {
       await apiClient.approveClaim(activeOrgId, claimId);
-      setClaims(claims.filter((c) => c.id !== claimId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to approve claim");
+      setClaims((prev) => prev.filter((c) => c.id !== claimId));
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to approve claim";
+      setError(message);
     } finally {
       setApproving(null);
     }
@@ -55,9 +55,10 @@ export function ClaimsView({ showApprovalActions = false }: ClaimsViewProps) {
     setApproving(claimId);
     try {
       await apiClient.rejectClaim(activeOrgId, claimId);
-      setClaims(claims.filter((c) => c.id !== claimId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reject claim");
+      setClaims((prev) => prev.filter((c) => c.id !== claimId));
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to reject claim";
+      setError(message);
     } finally {
       setApproving(null);
     }
@@ -80,10 +81,10 @@ export function ClaimsView({ showApprovalActions = false }: ClaimsViewProps) {
             ...(showApprovalActions ? ["Action"] : []),
           ]}
           rows={pendingClaims.map((claim) => [
-            `$${(parseFloat(claim.amount) / 100).toFixed(2)}`,
+            `$${(parseFloat(claim.payment.amount) / 100).toFixed(2)}`,
             claim.user?.email || "-",
             <Badge key="status" status={claim.status} />,
-            new Date(claim.createdAt).toLocaleDateString(),
+            new Date(claim.payment.transactionDate || claim.submittedAt).toLocaleDateString(),
             ...(showApprovalActions
               ? [
                   <div key="actions" className="flex gap-2">

@@ -22,8 +22,8 @@ export function ChiefAdminDashboard() {
         setIsLoading(true);
         const response = await apiClient.getContributionsSummary(activeOrgId, year);
         setSummary(response.summary);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to load summary";
+      } catch (err: unknown) {
+        const message = (err as { message?: string })?.message ?? "Failed to load summary";
         setError(message);
         setToast(message);
       } finally {

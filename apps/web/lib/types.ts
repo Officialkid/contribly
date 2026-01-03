@@ -11,7 +11,7 @@ export interface User {
 export interface Organization {
   id: string;
   name: string;
-  role: "CHIEF_ADMIN" | "MEMBER";
+  role: "CHIEF_ADMIN" | "ADMIN" | "MEMBER";
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +74,7 @@ export interface Withdrawal {
   status: "PENDING_APPROVAL" | "APPROVED" | "PENDING_OTP" | "COMPLETED" | "REJECTED";
   createdAt: string;
   updatedAt: string;
+  user?: { id: string; email: string; name: string | null } | null;
 }
 
 export interface ContributionsSummary {

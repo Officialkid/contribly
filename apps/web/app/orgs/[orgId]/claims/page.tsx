@@ -6,10 +6,11 @@ import { Loading } from "@/components/ui";
 import { ClaimsView } from "@/components/claims-view";
 
 export default function ClaimsPage() {
-  const { user, activeOrgId, activeDept } = useOrg();
+  const { user, activeOrgId, activeDeptId, departments } = useOrg();
+  const activeDept = departments.find((dept) => dept.id === activeDeptId) || null;
 
   const isChiefAdminOrDeptAdmin =
-    user?.role === "CHIEF_ADMIN" || (user?.role === "ADMIN" && activeDept);
+    user?.role === "CHIEF_ADMIN" || (user?.role === "ADMIN" && !!activeDept);
 
   if (!user) {
     return <Loading message="Loading account..." />;

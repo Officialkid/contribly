@@ -14,16 +14,17 @@ export function WithdrawalForm({
   onSuccess,
   availableBalance = 0,
 }: WithdrawalFormProps) {
-  const { activeOrgId, user } = useOrg();
+  const { activeOrgId, activeDeptId, user } = useOrg();
   const [amount, setAmount] = useState<string>("");
   const [accountInfo, setAccountInfo] = useState<string>("");
+  const [reason, setReason] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeOrgId || !user) return;
+    if (!activeOrgId || !activeDeptId || !user) return;
 
     const amountCents = Math.round(parseFloat(amount) * 100);
     if (amountCents <= 0) {
@@ -41,18 +42,22 @@ export function WithdrawalForm({
 
     try {
       await apiClient.requestWithdrawal(activeOrgId, {
+        departmentId: activeDeptId,
         amount: amountCents.toString(),
-        accountInformation: accountInfo,
+        reason: reason.trim() || "Withdrawal request",
+        accountInformation: accountInfo.trim() || undefined,
       });
       setSuccess("Withdrawal request submitted successfully!");
       setAmount("");
       setAccountInfo("");
+      setReason("");
       setTimeout(() => {
         setSuccess(null);
         onSuccess?.();
       }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit withdrawal");
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to submit withdrawal";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -96,6 +101,20 @@ export function WithdrawalForm({
             className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:border-transparent"
             placeholder="Account number, routing number, or bank transfer details"
             rows={3}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Reason
+          </label>
+          <input
+            type="text"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+            placeholder="e.g. Monthly payout"
             required
           />
         </div>

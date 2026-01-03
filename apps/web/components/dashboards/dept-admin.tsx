@@ -26,8 +26,8 @@ export function DeptAdminDashboard() {
         const response = await apiClient.getDepartmentContributions(activeOrgId, activeDeptId, year);
         setSummary(response.summary);
         setError(null);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to load summary";
+      } catch (err: unknown) {
+        const message = (err as { message?: string })?.message ?? "Failed to load summary";
         setError(message);
         setToast(message);
       } finally {

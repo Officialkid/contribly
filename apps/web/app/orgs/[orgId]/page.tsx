@@ -8,7 +8,8 @@ import { MemberDashboard } from "@/components/dashboards/member";
 import { Loading } from "@/components/ui";
 
 export default function DashboardPage() {
-  const { user, activeOrg, activeDept } = useOrg();
+  const { user, activeOrg, activeDeptId, departments } = useOrg();
+  const activeDept = departments.find((dept) => dept.id === activeDeptId) || null;
 
   if (!user) {
     return <Loading message="Loading account..." />;
