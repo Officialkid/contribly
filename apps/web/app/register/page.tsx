@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
+import { PasswordStrengthIndicator } from "@/components/auth/password-strength-indicator";
+import { isPasswordValid, getPasswordValidationError } from "@/lib/password-validation";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,6 +32,14 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    // Validate password
+    const passwordError = getPasswordValidationError(formData.password);
+    if (passwordError) {
+      setError(passwordError);
+      setIsLoading(false);
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
@@ -170,6 +180,9 @@ export default function RegisterPage() {
                       )}
                     </button>
                   </div>
+                  
+                  {/* Password Strength Indicator */}
+                  <PasswordStrengthIndicator password={formData.password} />
                 </div>
 
                 <div>

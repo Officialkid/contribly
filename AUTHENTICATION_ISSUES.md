@@ -186,3 +186,10 @@ I will now:
 3. ✅ Create a health check endpoint
 4. ⏳ Wait for you to set environment variables on Render (you must do this)
 5. ⏳ Redeploy after env vars are set
+
+🌍 CORS allowed origins: [...]              // On startup
+✅ CORS: Allowing origin: ...               // Per request
+🍪 Cookie set on OAuth: {...}               // After OAuth
+🔐 Auth middleware: {...}                   // On /api/auth/me
+✅ Auth success: {...}                      // If auth works
+❌ Auth failed: No token provided           // If cookie missing

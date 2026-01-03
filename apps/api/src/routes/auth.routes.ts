@@ -1,9 +1,12 @@
 import { Router, Response } from "express";
-import { registerUser, loginUser, googleOAuthUser } from "../services/auth.service.js";
+import { registerUser, loginUser, googleOAuthUser, forgotPassword, resetPassword, generateMFACode, verifyMFACode } from "../services/auth.service.js";
 import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
+import { sendPasswordResetEmail, sendMFACodeEmail } from "../services/email.service.js";
+import { PrismaClient } from "@prisma/client";
 import passport from "../utils/passport.js";
 
 const router = Router();
+const prisma = new PrismaClient();
 
 // REGISTER
 router.post("/register", async (req: AuthRequest, res: Response) => {
@@ -251,6 +254,111 @@ router.get("/me", authMiddleware, async (req: AuthRequest, res: Response) => {
 router.post("/logout", (req: AuthRequest, res: Response) => {
   res.clearCookie("token");
   return res.json({ success: true });
+});
+
+// FORGOT PASSWORD
+router.post("/forgot-password", async (req: AuthRequest, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: "Email is required" });
+    }
+
+    const result = await forgotPassword(email);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    // Send password reset email
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user && user.resetToken) {
+      await sendPasswordResetEmail(email, user.resetToken, user.name || undefined);
+    }
+
+    return res.json({ success: true, message: "Password reset instructions sent to your email" });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return res.status(500).json({ success: false, error: "Failed to process password reset" });
+  }
+});
+
+// RESET PASSWORD
+router.post("/reset-password", async (req: AuthRequest, res: Response) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ success: false, error: "Token and new password are required" });
+    }
+
+    const result = await resetPassword(token, newPassword);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json({ success: true, message: "Password has been reset successfully" });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return res.status(500).json({ success: false, error: "Failed to reset password" });
+  }
+});
+
+// REQUEST MFA CODE
+router.post("/request-mfa", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+
+    const result = await generateMFACode(userId);
+
+    if (!result.success || !result.code) {
+      return res.status(500).json({ success: false, error: result.error || "Failed to generate code" });
+    }
+
+    // Send MFA code email
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (user) {
+      await sendMFACodeEmail(user.email, result.code, user.name || undefined);
+    }
+
+    return res.json({ success: true, message: "Verification code sent to your email" });
+  } catch (error) {
+    console.error("Request MFA code error:", error);
+    return res.status(500).json({ success: false, error: "Failed to send verification code" });
+  }
+});
+
+// VERIFY MFA CODE
+router.post("/verify-mfa", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { code } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+
+    if (!code) {
+      return res.status(400).json({ success: false, error: "Verification code is required" });
+    }
+
+    const result = await verifyMFACode(userId, code);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json({ success: true, message: "Verification successful" });
+  } catch (error) {
+    console.error("Verify MFA code error:", error);
+    return res.status(500).json({ success: false, error: "Failed to verify code" });
+  }
 });
 
 export default router;

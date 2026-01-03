@@ -56,6 +56,33 @@ export const apiClient = {
     return this.request<{ success: boolean; user: { id: string; email: string; name?: string | null; organizationId?: string | null; role?: "CHIEF_ADMIN" | "ADMIN" | "MEMBER"; departmentId?: string | null } }>("/api/auth/me");
   },
 
+  async forgotPassword(email: string) {
+    return this.request<{ success: boolean; message: string }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPassword(token: string, newPassword: string) {
+    return this.request<{ success: boolean; message: string }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, newPassword }),
+    });
+  },
+
+  async verifyMFA(code: string) {
+    return this.request<AuthResponse>("/api/auth/verify-mfa", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
+  },
+
+  async requestMFACode() {
+    return this.request<{ success: boolean; message: string }>("/api/auth/request-mfa", {
+      method: "POST",
+    });
+  },
+
   // Organizations
   createOrganization(name: string) {
     return this.request("/api/organizations", {
