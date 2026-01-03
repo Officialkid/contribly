@@ -6,11 +6,11 @@ Copy and paste ALL of these environment variables in the Render dashboard:
 
 ```
 CORS_ORIGIN=https://joincontribly.com,https://www.joincontribly.com
-DATABASE_URL=postgresql://contribly_db_user:wlqJjIu9KefIYi7L7BKTM3lmTN1UAmcF@dpg-d5bot5n5r7bs73aimqs0-a.oregon-postgres.render.com/contribly_db
+DATABASE_URL=<your_render_postgres_url>
 FRONTEND_URL=https://contribly-web.onrender.com
 GOOGLE_CALLBACK_URL=https://contribly-api.onrender.com/api/auth/google/callback
-GOOGLE_CLIENT_ID=626367465372-0i4ilqof0d25fsctbg5g4ei2bakfrtba.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+GOOGLE_CLIENT_ID=<your_google_client_id>
+GOOGLE_CLIENT_SECRET=<your_google_client_secret>
 JWT_EXPIRES_IN=7d
 JWT_SECRET=<generate_secure_32+_char_random_string>
 NODE_ENV=production
@@ -19,12 +19,17 @@ NPM_CONFIG_PRODUCTION=false
 PORT=3001
 SMTP_FROM="Contribly <noreply@joincontribly.com>"
 SMTP_HOST=smtp.gmail.com
-SMTP_PASSWORD=lddt dbiv umaq pton
+SMTP_PASSWORD=<your_gmail_app_password>
 SMTP_PORT=587
-SMTP_USER=danielmwalili1@gmail.com
+SMTP_USER=<your_gmail_address>
 ```
 
 **⚠️ BEFORE PASTING:**
+- Replace `<your_render_postgres_url>` with your Render PostgreSQL DATABASE_URL
+- Replace `<your_google_client_id>` with your Google OAuth Client ID
+- Replace `<your_google_client_secret>` with your Google OAuth Client Secret
+- Replace `<your_gmail_app_password>` with your Gmail App Password (from Google Account settings)
+- Replace `<your_gmail_address>` with your Gmail email address
 - For `JWT_SECRET`, generate a secure random string using:
   ```bash
   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
