@@ -24,18 +24,6 @@ SMTP_PORT=587
 SMTP_USER=<your_gmail_address>
 ```
 
-**⚠️ BEFORE PASTING:**
-- Replace `<your_render_postgres_url>` with your Render PostgreSQL DATABASE_URL
-- Replace `<your_google_client_id>` with your Google OAuth Client ID
-- Replace `<your_google_client_secret>` with your Google OAuth Client Secret
-- Replace `<your_gmail_app_password>` with your Gmail App Password (from Google Account settings)
-- Replace `<your_gmail_address>` with your Gmail email address
-- For `JWT_SECRET`, generate a secure random string using:
-  ```bash
-  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-  ```
-  Replace `<generate_secure_32+_char_random_string>` with the generated value
-
 ## Step-by-Step Setup on Render
 
 1. **Login to Render:** https://dashboard.render.com
