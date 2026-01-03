@@ -18,6 +18,8 @@ const allowedOrigins = [
   "https://contribly-web.vercel.app",         // Vercel production
   "https://contribly.onrender.com",           // Render frontend (alternative)
   process.env.FRONTEND_URL,                   // Any custom frontend URL from env
+  // Add CORS_ORIGIN from environment (supports comma-separated list)
+  ...(process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || []),
 ].filter(Boolean);
 
 console.log("🌍 CORS allowed origins:", allowedOrigins);
