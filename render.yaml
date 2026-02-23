@@ -1,0 +1,143 @@
+# Render.com Infrastructure as Code Configuration
+# Deploy Contribly with: render blueprint create
+# Update with: render blueprint sync
+
+services:
+  # ============================================================================
+  # PostgreSQL Database
+  # ============================================================================
+  - type: pserv
+    name: contribly-db
+    env: docker
+    plan: free  # Use 'standard' or higher for production
+    region: oregon
+    databaseName: contribly_db
+    databaseUser: contribly_user
+    ipAllowList: []  # Empty = allow all (required for free tier)
+
+  # ============================================================================
+  # Express API Backend
+  # ============================================================================
+  - type: web
+    name: contribly-api
+    env: node
+    region: oregon
+    plan: free  # Use 'starter' or higher for production
+    buildCommand: |
+      echo "📦 Installing dependencies..."
+      npm install
+      echo "🗄️  Generating Prisma client..."
+      cd packages/database && npx prisma generate && cd ../..
+      echo "🔄 Running database migrations..."
+      cd packages/database && npx prisma migrate deploy && cd ../..
+      echo "🏗️  Building TypeScript..."
+      cd apps/api && npm run build && cd ../..
+      echo "✅ API build complete"
+    startCommand: cd apps/api && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: contribly-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true  # Auto-generate secure secret
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: contribly-web
+          property: host
+      - key: SMTP_HOST
+        sync: false  # Set manually in Render dashboard
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false  # Set manually in Render dashboard
+      - key: SMTP_PASSWORD
+        sync: false  # Set manually in Render dashboard
+      - key: GOOGLE_CLIENT_ID
+        sync: false  # Optional: Set for Google OAuth
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false  # Optional: Set for Google OAuth
+      - key: GOOGLE_CALLBACK_URL
+        value: https://contribly-api.onrender.com/api/auth/google/callback
+      - key: R2_ACCOUNT_ID
+        sync: false  # Set manually for R2 avatar storage
+      - key: R2_ACCESS_KEY_ID
+        sync: false  # Set manually for R2 avatar storage
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false  # Set manually for R2 avatar storage
+      - key: R2_BUCKET_NAME
+        value: contribly-db
+      - key: R2_PUBLIC_URL
+        sync: false  # Set manually for R2 avatar storage
+
+  # ============================================================================
+  # Next.js Frontend
+  # ============================================================================
+  - type: web
+    name: contribly-web
+    env: node
+    region: oregon
+    plan: free  # Use 'starter' or higher for production
+    buildCommand: |
+      echo "📦 Installing dependencies..."
+      npm install
+      echo "🗄️  Generating Prisma client..."
+      cd packages/database && npx prisma generate && cd ../..
+      echo "🏗️  Building Next.js..."
+      cd apps/web && npm run build && cd ../..
+      echo "✅ Frontend build complete"
+    startCommand: cd apps/web && npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: contribly-api
+          property: host
+
+# ============================================================================
+# Deployment Notes
+# ============================================================================
+# 1. Manual setup required:
+#    - SMTP credentials (SMTP_HOST, SMTP_USER, SMTP_PASSWORD)
+#    - R2 credentials (if using avatar storage)
+#    - Google OAuth credentials (if using Google login)
+#
+# 2. Deploy this configuration:
+#    - Push to GitHub
+#    - In Render dashboard: "New" → "Blueprint" → Connect repo
+#    - Render will create all services automatically
+#
+# 3. After first deploy:
+#    - Go to contribly-api service → Environment
+#    - Add missing SMTP and R2 credentials
+#    - Trigger manual redeploy
+#
+# 4. Database migrations:
+#    - Automatically run on every API deployment
+#    - Rollbacks: Use prisma migrate resolve if needed
+#
+# 5. Health checks:
+#    - API: /health endpoint (returns JSON with status, timestamp, version)
+#    - Web: / endpoint (Next.js homepage)
+#    - Render auto-restarts if health check fails 3 times
+#
+# 6. Scaling:
+#    - Free tier: Limited hours, sleeps after inactivity
+#    - Starter: Always on, no sleep
+#    - Standard+: Horizontal scaling, more resources
+#
+# 7. Logs:
+#    - View in Render dashboard under each service
+#    - API logs show startup, CORS, errors
+#    - Look for "✅" (success) or "❌" (error) prefixes

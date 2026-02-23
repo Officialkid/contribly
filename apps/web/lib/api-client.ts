@@ -97,15 +97,15 @@ export const apiClient = {
   },
 
   // Organizations
-  createOrganization(name: string) {
-    return request("/api/organizations", {
+  createOrganization(data: { name: string; slug?: string }) {
+    return request<{ success: boolean; organization?: { id: string; name: string; slug: string; createdAt: string; memberCount: number } }>("/api/organizations", {
       method: "POST",
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(data),
     });
   },
 
   listOrganizations() {
-    return request("/api/organizations");
+    return request<{ success: boolean; organizations: { id: string; name: string; slug: string; createdAt: string; memberCount: number }[] }>("/api/organizations");
   },
 
   getOrganization(orgId: string) {
@@ -242,45 +242,63 @@ export const apiClient = {
   },
 
   // Profile
-  updateProfile(data: { name?: string; profileImage?: string }) {
-    return request("/api/auth/profile", {
+  async uploadAvatar(file: File) {
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const response = await fetch(`${API_BASE_URL}/api/user/avatar`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to upload avatar");
+    }
+
+    return response.json() as Promise<{ success: boolean; avatarUrl: string }>;
+  },
+
+  updateProfile(data: { name?: string }) {
+    return request<{ success: boolean; user?: { id: string; email: string; name: string; avatarUrl?: string } }>("/api/user/profile", {
       method: "PATCH",
       body: JSON.stringify(data),
     });
   },
 
   deleteAccount() {
-    return request("/api/auth/account", {
+    return request<{ success: boolean }>("/api/user/account", {
       method: "DELETE",
     });
   },
 
   // Payment Account Settings (Chief Admin)
   setPaymentAccount(orgId: string, data: { accountType: "PAYBILL" | "TILL"; accountNumber: string; accountName?: string }) {
-    return request(`/api/organizations/${orgId}/payment-account`, {
+    return request<{ account?: { accountType: string; accountNumber: string; accountName?: string } }>(`/api/organizations/${orgId}/payment-account`, {
       method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   getPaymentAccount(orgId: string) {
-    return request(`/api/organizations/${orgId}/payment-account`);
+    return request<{ account?: { accountType: string; accountNumber: string; accountName?: string } }>(`/api/organizations/${orgId}/payment-account`);
   },
 
   // User Management
   inviteUser(orgId: string, data: { email: string; departmentId?: string; role?: "MEMBER" | "ADMIN" }) {
-    return request(`/api/organizations/${orgId}/invitations`, {
+    return request<{ inviteLink?: { id: string; code: string; departmentId: string; createdAt: string } }>(`/api/organizations/${orgId}/invitations`, {
       method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   listInvitations(orgId: string) {
-    return request(`/api/organizations/${orgId}/invitations`);
+    return request<{ invitations: { id: string; code: string; departmentId: string; createdAt: string }[] }>(`/api/organizations/${orgId}/invitations`);
   },
 
   listMembers(orgId: string) {
-    return request(`/api/organizations/${orgId}/members`);
+    return request<{ members: { id: string; email: string; name: string; role: string; departmentId: string }[] }>(`/api/organizations/${orgId}/members`);
   },
 
   removeMember(orgId: string, userId: string) {

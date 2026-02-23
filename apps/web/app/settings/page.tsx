@@ -5,6 +5,7 @@ import { useOrg } from "@/lib/org-context";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { PaymentAccountSetup } from "@/components/payment-account-setup";
 import { MembersManagement } from "@/components/members-management";
+import { MFASettings } from "@/components/mfa-settings";
 import { EmptyState } from "@/components/ui";
 
 export default function SettingsPage() {
@@ -25,6 +26,14 @@ export default function SettingsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-12">
+        {/* MFA Settings - All Users */}
+        <div>
+          <h2 className="text-2xl font-bold text-text-primary mb-6">Security Settings</h2>
+          <MFASettings />
+        </div>
+
+        <hr className="border-border" />
+
         {/* Payment Account Setup - Chief Admin Only */}
         {isChiefAdmin && (
           <>

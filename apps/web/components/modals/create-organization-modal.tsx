@@ -25,7 +25,7 @@ export function CreateOrganizationModal({ onClose, onSuccess }: CreateOrganizati
     setError(null);
 
     try {
-      await apiClient.createOrganization(name.trim());
+      await apiClient.createOrganization({ name: name.trim() });
       onSuccess();
       onClose();
     } catch (err) {

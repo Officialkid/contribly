@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useOrg } from "@/lib/org-context";
 import { apiClient } from "@/lib/api-client";
 import { CarryForward } from "@/lib/types";
+import { formatCurrency } from "@/lib/currency";
 import { Card, Badge, Loading, Error, EmptyState, Skeleton, Toast } from "@/components/ui";
 
 export function MemberDashboard() {
@@ -40,8 +41,9 @@ export function MemberDashboard() {
   if (!activeOrgId || !activeDeptId) {
     return (
       <EmptyState
-        title="No Department Selected"
-        message="Please select a department from the sidebar to view your contribution balance."
+        title="Select a Department"
+        message="No department is currently selected."
+        details="Choose a department from the sidebar to view your contribution balance, track payments, and manage claims."
       />
     );
   }
@@ -72,7 +74,13 @@ export function MemberDashboard() {
   }
 
   if (error) return <Error message={error} />;
-  if (!balance) return <EmptyState title="No Data" message="No contribution data available" />;
+  if (!balance) return (
+    <EmptyState
+      title="No Balance Data"
+      message="Contribution data is not yet available."
+      details="Make your first contribution to get started. Your balance will appear here once a payment has been recorded and matched to your account."
+    />
+  );
 
   return (
     <div className="space-y-8">
@@ -88,7 +96,7 @@ export function MemberDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-text-muted uppercase tracking-wide">Monthly Amount</p>
-              <p className="text-4xl font-bold text-text-primary mt-2">₦{(balance.monthlyAmount / 100).toFixed(2)}</p>
+              <p className="text-4xl font-bold text-text-primary mt-2">{formatCurrency(balance.monthlyAmount)}</p>
             </div>
             <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center">
               <svg className="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +125,7 @@ export function MemberDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-text-muted uppercase tracking-wide">Pending Balance</p>
-              <p className="text-4xl font-bold text-primary-light mt-2">₦{(balance.carryForward / 100).toFixed(2)}</p>
+              <p className="text-4xl font-bold text-primary-light mt-2">{formatCurrency(balance.carryForward)}</p>
             </div>
             <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
               <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +144,7 @@ export function MemberDashboard() {
         <div className="card-body space-y-4">
           <div className="flex justify-between items-center py-3 border-b border-border">
             <span className="text-text-muted font-medium">Total Contributed:</span>
-            <span className="font-bold text-xl text-text-primary">₦{(balance.totalContributed / 100).toFixed(2)}</span>
+            <span className="font-bold text-xl text-text-primary">{formatCurrency(balance.totalContributed)}</span>
           </div>
           <div className="flex justify-between items-center py-3 border-b border-border">
             <span className="text-text-muted font-medium">Months Cleared:</span>
@@ -144,7 +152,7 @@ export function MemberDashboard() {
           </div>
           <div className="flex justify-between items-center py-3">
             <span className="text-text-muted font-medium">Carry-Forward:</span>
-            <span className="font-bold text-xl text-primary">₦{(balance.carryForward / 100).toFixed(2)}</span>
+            <span className="font-bold text-xl text-primary">{formatCurrency(balance.carryForward)}</span>
           </div>
           <div className="mt-6 pt-4 border-t border-border">
             <div className="flex items-center gap-2 text-sm text-text-muted">

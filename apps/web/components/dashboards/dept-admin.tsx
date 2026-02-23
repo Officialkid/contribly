@@ -41,8 +41,9 @@ export function DeptAdminDashboard() {
   if (!activeOrgId || !activeDeptId) {
     return (
       <EmptyState
-        title="No Department Selected"
-        message="Please select a department from the sidebar to view its contribution details."
+        title="Select a Department"
+        message="No department is currently selected."
+        details="Choose a department from the sidebar to view contribution details, member balances, and manage department finances."
       />
     );
   }
@@ -80,7 +81,13 @@ export function DeptAdminDashboard() {
   }
 
   if (error) return <Error message={error} />;
-  if (!summary) return <EmptyState title="No Data" message="No contribution data available" />;
+  if (!summary) return (
+    <EmptyState
+      title="No Contribution Data"
+      message="No contributions have been recorded for this department yet."
+      details="Invite members to the department and record their contributions. All member balances and contribution history will appear here."
+    />
+  );
 
   return (
     <div className="space-y-8">

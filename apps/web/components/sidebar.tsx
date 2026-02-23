@@ -18,8 +18,25 @@ export function Sidebar() {
     <aside className="w-64 bg-slate-900 text-white h-screen overflow-y-auto flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-slate-700">
-        <h1 className="text-xl font-bold">Contribly</h1>
-        <p className="text-xs text-slate-400 mt-1">{user.email}</p>
+        <div className="flex items-center gap-3">
+          {/* Avatar */}
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-sm shadow-soft overflow-hidden flex-shrink-0">
+            {(user as any)?.avatarUrl ? (
+              <img 
+                src={(user as any).avatarUrl} 
+                alt="Profile" 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <span>{user.email?.substring(0, 2).toUpperCase()}</span>
+            )}
+          </div>
+          {/* User Info */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold">Contribly</h1>
+            <p className="text-xs text-slate-400 truncate">{user.email}</p>
+          </div>
+        </div>
       </div>
 
       {/* Organization Selector */}

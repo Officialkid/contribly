@@ -5,6 +5,7 @@ export interface User {
   organizationId?: string | null;
   role?: "CHIEF_ADMIN" | "ADMIN" | "MEMBER";
   departmentId?: string | null;
+  profileImage?: string | null;
   organizations: Organization[];
 }
 

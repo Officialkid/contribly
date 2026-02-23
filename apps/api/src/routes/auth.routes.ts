@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { registerUser, loginUser, googleOAuthUser, forgotPassword, resetPassword, generateMFACode, verifyMFACode } from "../services/auth.service.js";
+import { registerUser, loginUser, googleOAuthUser, forgotPassword, resetPassword, generateMFACode, verifyMFACode, verifyMFALogin, enableMFARequest, confirmEnableMFA, disableMFA } from "../services/auth.service.js";
 import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
 import { sendPasswordResetEmail, sendMFACodeEmail } from "../services/email.service.js";
 import { PrismaClient } from "@prisma/client";
@@ -66,7 +66,16 @@ router.post("/login", async (req: AuthRequest, res: Response) => {
       return res.status(401).json(result);
     }
 
-    // Set HTTP-only cookie
+    // Check if MFA is required
+    if (result.requiresMfa) {
+      return res.json({
+        success: true,
+        requiresMfa: true,
+        email: result.email,
+      });
+    }
+
+    // Set HTTP-only cookie for normal login
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -91,6 +100,50 @@ router.post("/login", async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: "Login failed" });
+  }
+});
+
+// VERIFY MFA CODE DURING LOGIN
+router.post("/login/verify-mfa", async (req: AuthRequest, res: Response) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({ success: false, error: "Email and verification code required" });
+    }
+
+    const result = await verifyMFALogin(email, code);
+
+    if (!result.success) {
+      return res.status(401).json(result);
+    }
+
+    // Set HTTP-only cookie after successful MFA verification
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    };
+    
+    res.cookie("token", result.token, cookieOptions);
+    
+    console.log("🍪 Cookie set on MFA verification:", {
+      hasToken: !!result.token,
+      secure: cookieOptions.secure,
+      sameSite: cookieOptions.sameSite,
+      httpOnly: cookieOptions.httpOnly,
+      origin: req.headers.origin,
+      userEmail: result.user?.email,
+    });
+
+    return res.json({
+      success: true,
+      user: result.user,
+    });
+  } catch (error) {
+    console.error("MFA verification error:", error);
+    return res.status(500).json({ success: false, error: "MFA verification failed" });
   }
 });
 
@@ -265,22 +318,34 @@ router.post("/forgot-password", async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, error: "Email is required" });
     }
 
-    const result = await forgotPassword(email);
+    // Get user to find organizationId for audit log
+    const user = await prisma.user.findUnique({ 
+      where: { email },
+      include: {
+        organizationMembers: {
+          select: { organizationId: true },
+          take: 1,
+        },
+      },
+    });
+
+    const organizationId = user?.organizationMembers[0]?.organizationId;
+    const result = await forgotPassword(email, organizationId);
 
     if (!result.success) {
       return res.status(400).json(result);
     }
 
-    // Send password reset email
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (user && user.resetToken) {
-      await sendPasswordResetEmail(email, user.resetToken, user.name || undefined);
+    // Send password reset email with raw token (not hashed)
+    if (user && result.rawToken) {
+      await sendPasswordResetEmail(email, result.rawToken, user.name || undefined);
     }
 
-    return res.json({ success: true, message: "Password reset instructions sent to your email" });
+    // Always return success message (don't reveal if email exists)
+    return res.json({ success: true, message: "If an account exists with this email, password reset instructions have been sent." });
   } catch (error) {
-    console.error("Forgot password error:", error);
-    return res.status(500).json({ success: false, error: "Failed to process password reset" });
+    console.error("Forgot password route error:", error);
+    return res.status(500).json({ success: false, error: "Failed to process password reset request" });
   }
 });
 
@@ -299,10 +364,10 @@ router.post("/reset-password", async (req: AuthRequest, res: Response) => {
       return res.status(400).json(result);
     }
 
-    return res.json({ success: true, message: "Password has been reset successfully" });
+    return res.json({ success: true, message: "Your password has been reset successfully. You can now log in with your new password." });
   } catch (error) {
-    console.error("Reset password error:", error);
-    return res.status(500).json({ success: false, error: "Failed to reset password" });
+    console.error("Reset password route error:", error);
+    return res.status(500).json({ success: false, error: "Failed to reset password. Please try again." });
   }
 });
 
@@ -358,6 +423,119 @@ router.post("/verify-mfa", authMiddleware, async (req: AuthRequest, res: Respons
   } catch (error) {
     console.error("Verify MFA code error:", error);
     return res.status(500).json({ success: false, error: "Failed to verify code" });
+  }
+});
+
+// MFA SETTINGS - Enable MFA (Request OTP)
+router.post("/mfa/enable", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+
+    const result = await enableMFARequest(userId);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json({ 
+      success: true, 
+      message: "Verification code sent to your email. Please verify to enable MFA." 
+    });
+  } catch (error) {
+    console.error("Enable MFA request error:", error);
+    return res.status(500).json({ success: false, error: "Failed to process request" });
+  }
+});
+
+// MFA SETTINGS - Confirm and Enable MFA (Verify OTP)
+router.post("/mfa/confirm", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { code } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+
+    if (!code) {
+      return res.status(400).json({ success: false, error: "Verification code is required" });
+    }
+
+    const result = await confirmEnableMFA(userId, code);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json({ 
+      success: true, 
+      message: "MFA enabled successfully" 
+    });
+  } catch (error) {
+    console.error("Confirm enable MFA error:", error);
+    return res.status(500).json({ success: false, error: "Failed to enable MFA" });
+  }
+});
+
+// MFA SETTINGS - Disable MFA
+router.post("/mfa/disable", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { code } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+
+    if (!code) {
+      return res.status(400).json({ success: false, error: "Verification code is required" });
+    }
+
+    const result = await disableMFA(userId, code);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.json({ 
+      success: true, 
+      message: "MFA disabled successfully" 
+    });
+  } catch (error) {
+    console.error("Disable MFA error:", error);
+    return res.status(500).json({ success: false, error: "Failed to disable MFA" });
+  }
+});
+
+// MFA SETTINGS - Get MFA Status
+router.get("/mfa/status", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+
+    const user = await prisma.user.findUnique({ 
+      where: { id: userId },
+      select: { mfaEnabled: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    return res.json({ 
+      success: true, 
+      mfaEnabled: user.mfaEnabled 
+    });
+  } catch (error) {
+    console.error("Get MFA status error:", error);
+    return res.status(500).json({ success: false, error: "Failed to get MFA status" });
   }
 });
 

@@ -13,6 +13,7 @@ export function ProfileManagement() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -22,14 +23,16 @@ export function ProfileManagement() {
     username: user?.email?.split("@")[0] || "",
   });
 
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(
+    (user as any)?.avatarUrl || null
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -40,18 +43,33 @@ export function ProfileManagement() {
     }
 
     // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setError("Please upload a valid image file");
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Only JPEG, PNG, and WebP images are allowed");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setProfileImage(event.target?.result as string);
-      setSuccess("Image ready to upload");
-      setTimeout(() => setSuccess(null), 2000);
-    };
-    reader.readAsDataURL(file);
+    setIsUploadingAvatar(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await apiClient.uploadAvatar(file);
+      setCurrentAvatarUrl(response.avatarUrl);
+      setSuccess("Profile picture updated successfully!");
+      setTimeout(() => setSuccess(null), 3000);
+
+      // Refresh user data to update context
+      setTimeout(() => router.refresh(), 1000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload avatar");
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -67,12 +85,10 @@ export function ProfileManagement() {
     try {
       await apiClient.updateProfile({
         name: formData.name.trim(),
-        profileImage: profileImage || undefined,
       });
 
       setSuccess("Profile updated successfully!");
       setIsEditing(false);
-      setProfileImage(null);
       setTimeout(() => setSuccess(null), 3000);
 
       // Refresh user data
@@ -149,30 +165,44 @@ export function ProfileManagement() {
             <div>
               <label className="label">Profile Picture</label>
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-soft">
-                  {profileImage ? (
-                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover rounded-xl" />
+                <div className="relative w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-soft overflow-hidden">
+                  {currentAvatarUrl ? (
+                    <img 
+                      src={currentAvatarUrl} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover" 
+                    />
                   ) : (
-                    user?.email?.substring(0, 2).toUpperCase()
+                    <span>{user?.email?.substring(0, 2).toUpperCase()}</span>
+                  )}
+                  {isUploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <svg className="animate-spin h-8 w-8 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
                   )}
                 </div>
                 <div className="flex-1">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isEditing === false || isSaving}
+                    disabled={isUploadingAvatar}
                     className="px-4 py-2 bg-primary text-white rounded-button font-semibold hover:bg-primary-dark disabled:opacity-50 transition-all"
                   >
-                    {profileImage ? "Change Image" : "Upload Image"}
+                    {isUploadingAvatar ? "Uploading..." : currentAvatarUrl ? "Change Image" : "Upload Image"}
                   </button>
-                  <p className="text-xs text-text-muted mt-2">JPG, PNG up to 5MB</p>
+                  <p className="text-xs text-text-muted mt-2">
+                    JPG, PNG, or WebP up to 5MB
+                  </p>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={handleImageUpload}
                     className="hidden"
-                    disabled={!isEditing}
+                    disabled={isUploadingAvatar}
                   />
                 </div>
               </div>
