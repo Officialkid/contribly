@@ -41,6 +41,8 @@ export interface AuthResponse {
   success: boolean;
   user?: { id: string; email: string; name: string | null; organizationId?: string; departmentId?: string | null; role?: "CHIEF_ADMIN" | "ADMIN" | "MEMBER" };
   error?: string;
+  requiresMfa?: boolean;
+  email?: string;
 }
 
 export const apiClient = {

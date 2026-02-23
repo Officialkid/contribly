@@ -95,16 +95,16 @@ model InviteLink {
 }
 
 model Organization {
-  id                 String               @id
-  name               String
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime
-  AuditLog           AuditLog[]
-  ChiefAdminPIN      ChiefAdminPIN[]
-  Department         Department[]
-  OrganizationMember OrganizationMember[]
-  Payment            Payment[]
-  PaymentAccount     PaymentAccount?
+  id             String               @id
+  name           String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime
+  auditLogs      AuditLog[]
+  chiefAdminPins ChiefAdminPIN[]
+  departments    Department[]
+  members        OrganizationMember[]
+  payments       Payment[]
+  paymentAccount PaymentAccount?
 
   @@index([name])
 }
@@ -136,9 +136,9 @@ model Payment {
   transactionDate DateTime
   createdAt       DateTime      @default(now())
   updatedAt       DateTime
-  Department      Department?   @relation(fields: [departmentId], references: [id])
-  Organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  PaymentClaim    PaymentClaim?
+  department      Department?   @relation(fields: [departmentId], references: [id])
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  claim           PaymentClaim?
 
   @@index([departmentId])
   @@index([organizationId])
@@ -219,9 +219,9 @@ model Withdrawal {
   status        WithdrawalStatus @default(PENDING_APPROVAL)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime
-  User          User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  Department    Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  WithdrawalOTP WithdrawalOTP[]
+  creator       User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  department    Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  otps          WithdrawalOTP[]
 
   @@index([createdAt])
   @@index([creatorId])
