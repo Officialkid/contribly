@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { PrismaClient } from "@prisma/client";
 import { generateToken } from "../utils/jwt.js";
 import { validatePassword } from "../utils/password-validation.js";
@@ -62,7 +63,9 @@ export async function registerUser(
       // Always create organization for new user
       const organization = await tx.organization.create({
         data: {
+          id: crypto.randomUUID(),
           name: organizationName,
+          updatedAt: new Date(),
           members: {
             create: {
               userId: user.id,

@@ -148,17 +148,14 @@ describe("Payment Lifecycle Integration Tests", () => {
       const payment = await prisma.payment.findUnique({
         where: { id: paymentId },
         include: {
-          departmentMember: {
-            include: {
-              user: true,
-            },
-          },
+          department: true,
+          claim: true,
         },
       });
 
       expect(payment).toBeDefined();
       expect(payment?.status).toBe("MATCHED");
-      expect(payment?.departmentMember?.userId).toBe(testData.member1.id);
+      expect(payment?.userId).toBe(testData.member1.id);
     });
 
     it("should show member 1 with monthsCleared = 1", async () => {
@@ -454,7 +451,7 @@ describe("Payment Lifecycle Integration Tests", () => {
         request(app)
           .post(`/api/organizations/${testData.organization.id}/departments/${testData.department.id}/withdrawals/${withdrawalId}/approve`)
           .send({
-            otp: otpRecord?.otp,
+            otp: otpRecord?.code,
             pin: "1234", // Mock PIN
           }),
         chiefAdminToken

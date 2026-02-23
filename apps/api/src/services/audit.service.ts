@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,7 @@ export async function createAuditLog(input: AuditLogInput): Promise<void> {
   try {
     await prisma.auditLog.create({
       data: {
+        id: crypto.randomUUID(),
         organizationId: input.organizationId,
         userId: input.userId,
         action: input.action,
@@ -50,7 +52,7 @@ export async function getAuditLogs(
       orderBy: { createdAt: "desc" },
       take: filters?.limit || 50,
       skip: filters?.offset || 0,
-      include: { user: { select: { email: true, name: true } } },
+      include: { User: { select: { email: true, name: true } } },
     });
   } catch (error) {
     console.error("Failed to fetch audit logs:", error);

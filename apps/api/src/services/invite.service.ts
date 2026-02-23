@@ -25,11 +25,13 @@ export async function createInviteLink(
   const code = crypto.randomUUID();
   const invite = await prisma.inviteLink.create({
     data: {
+      id: crypto.randomUUID(),
       code,
       departmentId,
       createdByUserId,
       expiresAt: expiresAt || null,
       maxUses: maxUses || null,
+      updatedAt: new Date(),
     },
   });
 
@@ -48,7 +50,7 @@ export async function acceptInvite(params: {
   const invite = await prisma.inviteLink.findUnique({
     where: { code },
     include: {
-      department: {
+      Department: {
         select: { id: true, organizationId: true },
       },
     },
@@ -114,13 +116,13 @@ export async function acceptInvite(params: {
     where: {
       userId_organizationId: {
         userId,
-        organizationId: invite.department.organizationId,
+        organizationId: invite.Department.organizationId,
       },
     },
     update: {},
     create: {
       userId,
-      organizationId: invite.department.organizationId,
+      organizationId: invite.Department.organizationId,
       role: "MEMBER",
     },
   });
@@ -129,18 +131,20 @@ export async function acceptInvite(params: {
   const existingDeptMember = await prisma.departmentMember.findFirst({
     where: {
       userId,
-      departmentId: invite.department.id,
+      departmentId: invite.Department.id,
     },
   });
 
   if (!existingDeptMember) {
-    const paymentReference = await generateUniquePaymentReference(invite.department.id);
+    const paymentReference = await generateUniquePaymentReference(invite.Department.id);
     await prisma.departmentMember.create({
       data: {
+        id: crypto.randomUUID(),
         userId,
-        departmentId: invite.department.id,
+        departmentId: invite.Department.id,
         role: "MEMBER",
         paymentReference,
+        updatedAt: new Date(),
       },
     });
   }
@@ -156,9 +160,9 @@ export async function acceptInvite(params: {
 
   return {
     success: true,
-    organizationId: invite.department.organizationId,
-    departmentId: invite.department.id,
+    organizationId: invite.Department.organizationId,
+    departmentId: invite.Department.id,
     token: issuedToken,
-    user: { id: userId, email: userEmail, organizationId: invite.department.organizationId },
+    user: { id: userId, email: userEmail, organizationId: invite.Department.organizationId },
   };
 }

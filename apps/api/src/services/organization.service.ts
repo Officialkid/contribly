@@ -1,11 +1,14 @@
 import { PrismaClient } from "@prisma/client";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
 export async function createOrganization(userId: string, name: string) {
   const organization = await prisma.organization.create({
     data: {
+      id: crypto.randomUUID(),
       name,
+      updatedAt: new Date(),
       members: {
         create: {
           userId,

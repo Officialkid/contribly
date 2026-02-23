@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -21,9 +22,11 @@ export async function createDepartment(
 ) {
   const department = await prisma.department.create({
     data: {
+      id: crypto.randomUUID(),
       organizationId,
       name,
       monthlyContribution: monthlyContribution ? monthlyContribution : null,
+      updatedAt: new Date(),
     },
   });
 
@@ -41,10 +44,12 @@ export async function createDepartment(
       paymentReference,
     },
     create: {
+      id: crypto.randomUUID(),
       userId: creatorUserId,
       departmentId: department.id,
       role: "ADMIN",
       paymentReference,
+      updatedAt: new Date(),
     },
   });
 
@@ -77,7 +82,7 @@ export async function listDepartments(organizationId: string) {
   const departments = await prisma.department.findMany({
     where: { organizationId },
     include: {
-      members: {
+      DepartmentMember: {
         select: { userId: true, role: true },
       },
     },
@@ -91,7 +96,7 @@ export async function listDepartments(organizationId: string) {
       name: d.name,
       monthlyContribution: d.monthlyContribution,
       organizationId: d.organizationId,
-      memberCount: d.members.length,
+      memberCount: d.DepartmentMember.length,
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,
     })),
@@ -125,10 +130,12 @@ export async function assignDepartmentAdmin(
       paymentReference,
     },
     create: {
+      id: crypto.randomUUID(),
       userId: targetUserId,
       departmentId,
       role: "ADMIN",
       paymentReference,
+      updatedAt: new Date(),
     },
   });
 

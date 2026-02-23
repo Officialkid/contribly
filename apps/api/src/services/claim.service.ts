@@ -1,4 +1,5 @@
 import { PrismaClient, ClaimStatus } from "@prisma/client";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -40,12 +41,14 @@ export async function submitPaymentClaim(
 
   const claim = await prisma.paymentClaim.create({
     data: {
+      id: crypto.randomUUID(),
       paymentId,
       userId,
       departmentId,
       transactionCode,
       details: details || null,
       status: ClaimStatus.PENDING,
+      updatedAt: new Date(),
     },
   });
 
@@ -59,8 +62,8 @@ export async function listClaimsByDepartment(departmentId: string, status?: Clai
       status: status || undefined,
     },
     include: {
-      user: { select: { id: true, email: true, name: true } },
-      payment: {
+      User: { select: { id: true, email: true, name: true } },
+      Payment: {
         select: {
           id: true,
           amount: true,
@@ -76,8 +79,8 @@ export async function listClaimsByDepartment(departmentId: string, status?: Clai
     success: true,
     claims: claims.map((c) => ({
       id: c.id,
-      payment: { ...c.payment, amount: c.payment.amount.toString() },
-      user: c.user,
+      payment: { ...c.Payment, amount: c.Payment.amount.toString() },
+      user: c.User,
       transactionCode: c.transactionCode,
       details: c.details,
       status: c.status,
@@ -96,7 +99,7 @@ export async function approveClaim(
   const claim = await prisma.paymentClaim.findUnique({
     where: { id: claimId },
     include: {
-      payment: true,
+      Payment: true,
     },
   });
 
@@ -104,7 +107,7 @@ export async function approveClaim(
     return { success: false, error: "Claim not found" };
   }
 
-  if (claim.payment.organizationId !== organizationId) {
+  if (claim.Payment.organizationId !== organizationId) {
     return { success: false, error: "Claim not in this organization" };
   }
 
@@ -141,14 +144,14 @@ export async function rejectClaim(
 ) {
   const claim = await prisma.paymentClaim.findUnique({
     where: { id: claimId },
-    include: { payment: true },
+    include: { Payment: true },
   });
 
   if (!claim) {
     return { success: false, error: "Claim not found" };
   }
 
-  if (claim.payment.organizationId !== organizationId) {
+  if (claim.Payment.organizationId !== organizationId) {
     return { success: false, error: "Claim not in this organization" };
   }
 

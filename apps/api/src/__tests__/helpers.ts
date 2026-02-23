@@ -5,6 +5,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -49,7 +50,9 @@ export async function seedTestData(): Promise<TestData> {
   // Create organization
   const organization = await prisma.organization.create({
     data: {
+      id: crypto.randomUUID(),
       name: `Test Org ${timestamp}`,
+      updatedAt: new Date(),
     },
   });
 
@@ -75,9 +78,11 @@ export async function seedTestData(): Promise<TestData> {
   // Create department
   const department = await prisma.department.create({
     data: {
+      id: crypto.randomUUID(),
       name: `Test Department ${timestamp}`,
       organizationId: organization.id,
       monthlyContribution: 10000, // KES 100.00
+      updatedAt: new Date(),
     },
   });
 
@@ -104,9 +109,11 @@ export async function seedTestData(): Promise<TestData> {
   const member1Reference = `REF-M1-${timestamp}`;
   await prisma.departmentMember.create({
     data: {
+      id: crypto.randomUUID(),
       userId: member1.id,
       departmentId: department.id,
       paymentReference: member1Reference,
+      updatedAt: new Date(),
     },
   });
 
@@ -133,9 +140,11 @@ export async function seedTestData(): Promise<TestData> {
   const member2Reference = `REF-M2-${timestamp}`;
   await prisma.departmentMember.create({
     data: {
+      id: crypto.randomUUID(),
       userId: member2.id,
       departmentId: department.id,
       paymentReference: member2Reference,
+      updatedAt: new Date(),
     },
   });
 

@@ -1,4 +1,5 @@
 import passport from "passport";
+import crypto from "crypto";
 import { Strategy as GoogleStrategy, Profile, VerifyCallback } from "passport-google-oauth20";
 import { PrismaClient } from "@prisma/client";
 import { generateToken } from "./jwt.js";
@@ -109,7 +110,9 @@ passport.use(
             console.log("🔵 Creating default organization for user:", newUser.id);
             const organization = await tx.organization.create({
               data: {
+                id: crypto.randomUUID(),
                 name: name ? `${name}'s Organization` : "My Organization",
+                updatedAt: new Date(),
                 members: {
                   create: {
                     userId: newUser.id,

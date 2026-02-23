@@ -79,9 +79,9 @@ export async function getDepartmentContributionsSummary(departmentId: string, ye
   const department = await prisma.department.findUnique({
     where: { id: departmentId },
     include: {
-      members: {
+      DepartmentMember: {
         include: {
-          user: { select: { id: true, email: true, name: true } },
+          User: { select: { id: true, email: true, name: true } },
         },
       },
     },
@@ -92,7 +92,7 @@ export async function getDepartmentContributionsSummary(departmentId: string, ye
   }
 
   const memberBalances = await Promise.all(
-    department.members.map(async (member) => {
+    department.DepartmentMember.map(async (member) => {
       const carryForward = await calculateCarryForward(
         departmentId,
         member.userId,
@@ -100,7 +100,7 @@ export async function getDepartmentContributionsSummary(departmentId: string, ye
       );
 
       return {
-        user: member.user,
+        user: member.User,
         paymentReference: member.paymentReference,
         role: member.role,
         balance: carryForward,
@@ -127,9 +127,9 @@ export async function listMemberBalancesInOrganization(organizationId: string, y
   const departments = await prisma.department.findMany({
     where: { organizationId },
     include: {
-      members: {
+      DepartmentMember: {
         include: {
-          user: { select: { id: true, email: true, name: true } },
+          User: { select: { id: true, email: true, name: true } },
         },
       },
     },
@@ -138,7 +138,7 @@ export async function listMemberBalancesInOrganization(organizationId: string, y
   const summaries = await Promise.all(
     departments.map(async (dept) => {
       const memberBalances = await Promise.all(
-        dept.members.map(async (member) => {
+        dept.DepartmentMember.map(async (member) => {
           const carryForward = await calculateCarryForward(
             dept.id,
             member.userId,
@@ -146,7 +146,7 @@ export async function listMemberBalancesInOrganization(organizationId: string, y
           );
 
           return {
-            user: member.user,
+            user: member.User,
             paymentReference: member.paymentReference,
             role: member.role,
             balance: carryForward,

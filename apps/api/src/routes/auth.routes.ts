@@ -258,7 +258,7 @@ router.get("/me", authMiddleware, async (req: AuthRequest, res: Response) => {
       const deptMembership = await prisma.departmentMember.findFirst({
         where: {
           userId,
-          department: {
+          Department: {
             organizationId,
           },
         },
