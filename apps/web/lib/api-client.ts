@@ -248,7 +248,7 @@ export const apiClient = {
     const formData = new FormData();
     formData.append("avatar", file);
 
-    const response = await fetch(`${API_BASE_URL}/api/user/avatar`, {
+    const response = await fetch(`${API_BASE}/api/user/avatar`, {
       method: "POST",
       credentials: "include",
       body: formData,

@@ -254,7 +254,7 @@ export function ProfileManagement() {
                   onClick={() => {
                     setIsEditing(false);
                     setFormData({ name: user?.name || "", username: user?.email?.split("@")[0] || "" });
-                    setProfileImage(null);
+                    setCurrentAvatarUrl((user as any)?.avatarUrl || null);
                   }}
                   disabled={isSaving}
                   className="flex-1 px-4 py-3 bg-background border-2 border-border rounded-button text-text-primary font-semibold hover:bg-background/80 disabled:opacity-50 transition-all"

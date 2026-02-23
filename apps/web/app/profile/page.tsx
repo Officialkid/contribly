@@ -68,7 +68,6 @@ export default function ProfilePage() {
     try {
       const response = await apiClient.updateProfile({
         name: formData.name,
-        profileImage: profileImage || undefined,
       });
 
       if ((response as any)?.success) {
