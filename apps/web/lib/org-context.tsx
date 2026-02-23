@@ -88,8 +88,11 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
           setActiveDeptId(departmentIdFromUser);
         }
       } catch (err) {
-        console.error("Failed to load user:", err);
-        setError(err instanceof Error ? err.message : "Failed to load user");
+        // Silently handle unauthenticated requests (401) - this is expected when not logged in
+        if (err instanceof Error && !err.message.includes("No authentication token")) {
+          console.error("Failed to load user:", err);
+          setError(err.message);
+        }
         setUser(null);
         setActiveOrgId(null);
       } finally {
