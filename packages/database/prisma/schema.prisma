@@ -26,12 +26,12 @@ model AuditLog {
 }
 
 model ChiefAdminPIN {
-  id             String       @id
+  id             String       @id @default(cuid())
   userId         String
   organizationId String
   pinHash        String
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime     @updatedAt
   Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   User           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -110,14 +110,14 @@ model Organization {
 }
 
 model OrganizationMember {
-  id             String           @id
+  id             String           @id @default(cuid())
   userId         String
   organizationId String
   role           OrganizationRole @default(MEMBER)
   createdAt      DateTime         @default(now())
-  updatedAt      DateTime
-  Organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  User           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, organizationId])
   @@index([organizationId])
@@ -125,7 +125,7 @@ model OrganizationMember {
 }
 
 model Payment {
-  id              String        @id
+  id              String        @id @default(cuid())
   organizationId  String
   departmentId    String?
   userId          String?
@@ -135,7 +135,7 @@ model Payment {
   status          PaymentStatus @default(UNMATCHED)
   transactionDate DateTime
   createdAt       DateTime      @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime      @updatedAt
   department      Department?   @relation(fields: [departmentId], references: [id])
   organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   claim           PaymentClaim?
@@ -211,14 +211,14 @@ model User {
 }
 
 model Withdrawal {
-  id            String           @id
+  id            String           @id @default(cuid())
   departmentId  String
   creatorId     String
   amount        Decimal
   reason        String
   status        WithdrawalStatus @default(PENDING_APPROVAL)
   createdAt     DateTime         @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime         @updatedAt
   creator       User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   department    Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   otps          WithdrawalOTP[]
@@ -230,7 +230,7 @@ model Withdrawal {
 }
 
 model WithdrawalOTP {
-  id           String     @id
+  id           String     @id @default(cuid())
   withdrawalId String
   userId       String
   code         String
