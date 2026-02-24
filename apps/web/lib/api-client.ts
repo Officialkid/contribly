@@ -10,6 +10,15 @@ import type {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+// Debug mode - enable detailed logging
+const DEBUG_AUTH = typeof window !== "undefined" && (window.location.search.includes("debug=auth") || localStorage.getItem("debug_auth") === "true");
+
+function debugLog(category: string, message: string, data?: any) {
+  if (DEBUG_AUTH) {
+    console.log(`🔍 [${category}]`, message, data || "");
+  }
+}
+
 // Shared request helper so generic responses stay typed
 async function request<T = unknown>(endpoint: string, options?: RequestInit): Promise<T> {
   const { headers, ...rest } = options || {};
@@ -19,10 +28,23 @@ async function request<T = unknown>(endpoint: string, options?: RequestInit): Pr
     ...headers,
   };
 
+  debugLog("API Request", `${options?.method || "GET"} ${endpoint}`, {
+    url: `${API_BASE}${endpoint}`,
+    hasBody: !!options?.body,
+    credentials: "include",
+  });
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...rest,
     headers: requestHeaders,
     credentials: "include",
+  });
+
+  debugLog("API Response", `${response.status} ${endpoint}`, {
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    headers: Object.fromEntries(response.headers.entries()),
   });
 
   const isJson = response.headers.get("content-type")?.includes("application/json");
@@ -30,9 +52,11 @@ async function request<T = unknown>(endpoint: string, options?: RequestInit): Pr
 
   if (!response.ok) {
     const message = (data as any)?.error || (data as any)?.message || `API error: ${response.status}`;
+    debugLog("API Error", message, { status: response.status, data });
     throw new Error(message);
   }
 
+  debugLog("API Success", endpoint, { hasData: !!data });
   return (data ?? (await response.text())) as T;
 }
 

@@ -32,8 +32,13 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     const initUser = async () => {
       setIsLoading(true);
       setError(null);
+      
+      console.log("🔐 [OrgContext] Initializing user session...");
+      
       try {
+        console.log("🔐 [OrgContext] Calling getMe()...");
         const response = await apiClient.getMe();
+        console.log("🔐 [OrgContext] getMe() response:", response);
         const rawUser = response.user;
 
         if (!rawUser) {
@@ -88,14 +93,23 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
           setActiveDeptId(departmentIdFromUser);
         }
       } catch (err) {
+        console.error("🔐 [OrgContext] Failed to load user:", err);
+        
         // Silently handle unauthenticated requests (401) - this is expected when not logged in
-        if (err instanceof Error && !err.message.includes("No authentication token")) {
-          console.error("Failed to load user:", err);
-          setError(err.message);
+        if (err instanceof Error) {
+          if (err.message.includes("No authentication token")) {
+            console.log("🔐 [OrgContext] Not authenticated (no token) - this is normal for logged out users");
+          } else if (err.message.includes("401")) {
+            console.warn("🔐 [OrgContext] 401 Unauthorized - token may be invalid or expired");
+          } else {
+            console.error("🔐 [OrgContext] Unexpected error:", err.message);
+            setError(err.message);
+          }
         }
         setUser(null);
         setActiveOrgId(null);
       } finally {
+        console.log("🔐 [OrgContext] User initialization complete");
         setIsLoading(false);
       }
     };
