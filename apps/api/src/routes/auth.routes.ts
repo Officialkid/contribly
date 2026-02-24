@@ -224,8 +224,15 @@ router.get(
 // GET CURRENT USER
 router.get("/me", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
+    console.log("📍 /me endpoint reached - user authenticated:", { 
+      userId: req.user?.userId, 
+      email: req.user?.email,
+      origin: req.headers.origin 
+    });
+    
     const userId = req.user?.userId;
     if (!userId) {
+      console.error("❌ /me: No userId in authenticated request");
       return res.status(401).json({ success: false, error: "User not authenticated" });
     }
 

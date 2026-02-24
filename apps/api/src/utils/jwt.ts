@@ -16,8 +16,17 @@ export function generateToken(userId: string, email: string): string {
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch {
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    console.log("✅ JWT verified:", { userId: decoded.userId, email: decoded.email, exp: new Date(decoded.exp * 1000).toISOString() });
+    return decoded;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      console.error("❌ JWT verification failed: Token expired at", error.expiredAt);
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      console.error("❌ JWT verification failed:", error.message);
+    } else {
+      console.error("❌ JWT verification failed:", error);
+    }
     return null;
   }
 }

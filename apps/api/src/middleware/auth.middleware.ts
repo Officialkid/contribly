@@ -34,25 +34,36 @@ export type AuthHandler = RequestHandler<any, any, any, any, AuthRequest>;
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction): void {
   try {
-    const token = req.cookies?.token || req.headers.authorization?.replace("Bearer ", "");
+    const cookieToken = req.cookies?.token;
+    const authHeader = req.headers.authorization;
+    const headerToken = authHeader?.replace("Bearer ", "");
+    const token = cookieToken || headerToken;
 
     console.log("🔐 Auth middleware:", {
-      hasCookie: !!req.cookies?.token,
-      hasAuthHeader: !!req.headers.authorization,
-      hasToken: !!token,
-      origin: req.headers.origin,
+      method: req.method,
       path: req.path,
+      origin: req.headers.origin || "none",
+      hasCookie: !!cookieToken,
+      cookieTokenPreview: cookieToken ? `${cookieToken.substring(0, 20)}...` : "none",
+      hasAuthHeader: !!authHeader,
+      authHeaderPreview: authHeader ? `${authHeader.substring(0, 30)}...` : "none",
+      hasToken: !!token,
+      cookieNames: Object.keys(req.cookies || {}),
+      userAgent: req.headers["user-agent"]?.substring(0, 50),
     });
 
     if (!token) {
       console.error("❌ Auth failed: No token provided");
+      console.error("   Cookies received:", req.cookies);
+      console.error("   Authorization header:", authHeader || "none");
       res.status(401).json({ success: false, error: "No authentication token" });
       return;
     }
 
     const payload = verifyToken(token);
     if (!payload) {
-      console.error("❌ Auth failed: Invalid token");
+      console.error("❌ Auth failed: Token verification failed");
+      console.error("   Token source:", cookieToken ? "cookie" : "Authorization header");
       res.status(401).json({ success: false, error: "Invalid or expired token" });
       return;
     }

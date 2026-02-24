@@ -141,6 +141,23 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Debug endpoint to troubleshoot auth issues (development/staging only)
+app.get("/api/debug/auth", (req, res) => {
+  res.json({
+    cookies: req.cookies || {},
+    headers: {
+      authorization: req.headers.authorization || "none",
+      origin: req.headers.origin || "none",
+      referer: req.headers.referer || "none",
+      "user-agent": req.headers["user-agent"] || "none",
+    },
+    hasTokenCookie: !!req.cookies?.token,
+    hasAuthHeader: !!req.headers.authorization,
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Routes (lazy loaded)
 app.get("/api", (req, res) => {
   res.json({
