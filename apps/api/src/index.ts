@@ -142,21 +142,23 @@ app.get("/api/health", (req, res) => {
 });
 
 // Debug endpoint to troubleshoot auth issues (development/staging only)
-app.get("/api/debug/auth", (req, res) => {
-  res.json({
-    cookies: req.cookies || {},
-    headers: {
-      authorization: req.headers.authorization || "none",
-      origin: req.headers.origin || "none",
-      referer: req.headers.referer || "none",
-      "user-agent": req.headers["user-agent"] || "none",
-    },
-    hasTokenCookie: !!req.cookies?.token,
-    hasAuthHeader: !!req.headers.authorization,
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString(),
+if (process.env.NODE_ENV !== "production") {
+  app.get("/api/debug/auth", (req, res) => {
+    res.json({
+      cookies: req.cookies || {},
+      headers: {
+        authorization: req.headers.authorization || "none",
+        origin: req.headers.origin || "none",
+        referer: req.headers.referer || "none",
+        "user-agent": req.headers["user-agent"] || "none",
+      },
+      hasTokenCookie: !!req.cookies?.token,
+      hasAuthHeader: !!req.headers.authorization,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+    });
   });
-});
+}
 
 // Routes (lazy loaded)
 app.get("/api", (req, res) => {
@@ -193,15 +195,27 @@ void (async () => {
     const inviteRoutes = (await import("./routes/invite.routes.js")).default;
     console.log("✓ Invite routes loaded");
 
+    const onboardingRoutes = (await import("./routes/onboarding.routes.js")).default;
+    console.log("✓ Onboarding routes loaded");
+
     const userRoutes = (await import("./routes/user.routes.js")).default;
     console.log("✓ User routes loaded");
+
+    const auditRoutes = (await import("./routes/audit.routes.js")).default;
+    console.log("✓ Audit routes loaded");
+
+    const adminRoutes = (await import("./routes/admin.routes.js")).default;
+    console.log("✓ Admin routes loaded");
 
     app.use("/api/auth", authRoutes);
     app.use("/api", organizationRoutes);
     app.use("/api", paymentRoutes);
     app.use("/api", claimRoutes);
     app.use("/api", inviteRoutes);
+    app.use("/api/onboarding", onboardingRoutes);
     app.use("/api/user", userRoutes);
+    app.use("/api", auditRoutes);
+    app.use("/api", adminRoutes);
     console.log("✓ All routes registered successfully");
   } catch (err) {
     console.error("❌ Failed to load routes:", err instanceof Error ? err.message : err);

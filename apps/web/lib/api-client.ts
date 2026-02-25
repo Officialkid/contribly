@@ -53,6 +53,17 @@ async function request<T = unknown>(endpoint: string, options?: RequestInit): Pr
   if (!response.ok) {
     const message = (data as any)?.error || (data as any)?.message || `API error: ${response.status}`;
     debugLog("API Error", message, { status: response.status, data });
+    
+    // Auto-redirect to login on 401 (Unauthorized)
+    if (response.status === 401 && typeof window !== "undefined") {
+      // Clear any stale client state
+      localStorage.clear();
+      // Redirect to login with current path as 'next' parameter
+      const currentPath = window.location.pathname;
+      window.location.href = `/login?next=${encodeURIComponent(currentPath)}`;
+      return; // Don't throw - redirect will happen
+    }
+    
     throw new Error(message);
   }
 
@@ -347,6 +358,53 @@ export const apiClient = {
   markAllNotificationsAsRead() {
     return request("/api/notifications/read-all", {
       method: "POST",
+    });
+  },
+
+  // Onboarding
+  getOnboardingStatus(orgId: string) {
+    return request<{
+      success: boolean;
+      onboarding: {
+        id: string;
+        organizationId: string;
+        currentStep: number;
+        completedSteps: number[];
+        isComplete: boolean;
+        orgProfileDone: boolean;
+        paymentSetupDone: boolean;
+        deptCreatedDone: boolean;
+        inviteSentDone: boolean;
+        completedAt: string | null;
+        percentComplete: number;
+      };
+    }>(`/api/onboarding/${orgId}`);
+  },
+
+  updateOnboardingStep(orgId: string, step: number, field: "orgProfileDone" | "paymentSetupDone" | "deptCreatedDone" | "inviteSentDone") {
+    return request<{ success: boolean }>(`/api/onboarding/${orgId}/step`, {
+      method: "PATCH",
+      body: JSON.stringify({ step, field }),
+    });
+  },
+
+  completeOnboarding(orgId: string) {
+    return request<{ success: boolean }>(`/api/onboarding/${orgId}/complete`, {
+      method: "POST",
+    });
+  },
+
+  updateOrganization(orgId: string, data: { name?: string; description?: string }) {
+    return request<{ success: boolean }>(`/api/organizations/${orgId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  createInviteLink(orgId: string, deptId: string, expiresAt?: string, maxUses?: number) {
+    return request<{ success: boolean; invite: { id: string; code: string; departmentId: string; createdAt: string } }>(`/api/organizations/${orgId}/departments/${deptId}/invites`, {
+      method: "POST",
+      body: JSON.stringify({ expiresAt, maxUses }),
     });
   },
 };

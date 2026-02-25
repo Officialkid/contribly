@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 
 interface CreateOrganizationModalProps {
@@ -9,6 +10,7 @@ interface CreateOrganizationModalProps {
 }
 
 export function CreateOrganizationModal({ onClose, onSuccess }: CreateOrganizationModalProps) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,9 +27,16 @@ export function CreateOrganizationModal({ onClose, onSuccess }: CreateOrganizati
     setError(null);
 
     try {
-      await apiClient.createOrganization({ name: name.trim() });
+      const response = await apiClient.createOrganization({ name: name.trim() });
+      const orgId = response.organization?.id;
+      
       onSuccess();
       onClose();
+      
+      // Redirect to onboarding instead of dashboard
+      if (orgId) {
+        router.push("/onboarding");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create organization");
     } finally {

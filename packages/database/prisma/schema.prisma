@@ -14,7 +14,8 @@ model AuditLog {
   action         String
   resourceType   String
   resourceId     String
-  details        String?
+  metadata       String?      // JSON string with event-specific details
+  ipAddress      String?      // IP address for auth events
   createdAt      DateTime     @default(now())
   Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   User           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -187,7 +188,6 @@ model User {
   email               String               @unique
   name                String?
   passwordHash        String?
-  avatarUrl           String?              // Public URL for profile picture stored in R2
   authProvider        String?
   providerUserId      String?
   createdAt           DateTime             @default(now())
@@ -197,6 +197,8 @@ model User {
   mfaEnabled          Boolean              @default(false)
   resetToken          String?              @unique
   resetTokenExpiry    DateTime?
+  mfaAttempts         Int                  @default(0)
+  avatarUrl           String?
   auditLogs           AuditLog[]
   chiefAdminPins      ChiefAdminPIN[]
   departmentMembers   DepartmentMember[]
@@ -211,17 +213,17 @@ model User {
 }
 
 model Withdrawal {
-  id            String           @id @default(cuid())
-  departmentId  String
-  creatorId     String
-  amount        Decimal
-  reason        String
-  status        WithdrawalStatus @default(PENDING_APPROVAL)
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  creator       User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  department    Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  otps          WithdrawalOTP[]
+  id           String           @id @default(cuid())
+  departmentId String
+  creatorId    String
+  amount       Decimal
+  reason       String
+  status       WithdrawalStatus @default(PENDING_APPROVAL)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  creator      User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  department   Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  otps         WithdrawalOTP[]
 
   @@index([createdAt])
   @@index([creatorId])

@@ -163,6 +163,11 @@ router.get(
       return res.status(400).json({ success: false, error: "userId query param is required" });
     }
 
+    // SECURITY: Only allow viewing own balance unless CHIEF_ADMIN
+    if (userId !== req.user!.userId && req.organizationContext!.role !== "CHIEF_ADMIN") {
+      return res.status(403).json({ success: false, error: "You can only view your own balance" });
+    }
+
     const result = await getMemberBalanceInDepartment(
       req.departmentContext!.departmentId,
       userId

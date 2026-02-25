@@ -2,8 +2,16 @@ import { Router, Response } from "express";
 import { z } from "zod";
 import { AuthRequest } from "../middleware/auth.middleware.js";
 import { acceptInvite } from "../services/invite.service.js";
+import rateLimit from "express-rate-limit";
 
 const router = Router();
+
+// Rate limiter for invite acceptance (10 attempts per hour)
+const inviteLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  message: "Too many invite acceptance attempts. Please try again in 1 hour.",
+});
 
 // Accept invite (supports existing auth token or new user registration)
 const acceptInviteSchema = z.object({
@@ -13,7 +21,7 @@ const acceptInviteSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
 });
 
-router.post("/invites/accept", async (req: AuthRequest, res: Response) => {
+router.post("/invites/accept", inviteLimiter, async (req: AuthRequest, res: Response) => {
   const parsed = acceptInviteSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: parsed.error.errors[0]?.message || "Invalid payload" });

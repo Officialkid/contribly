@@ -9,7 +9,8 @@ export interface AuditLogInput {
   action: string;
   resourceType: string;
   resourceId: string;
-  details?: any;
+  metadata?: any;
+  ipAddress?: string;
 }
 
 export async function createAuditLog(input: AuditLogInput): Promise<void> {
@@ -22,7 +23,8 @@ export async function createAuditLog(input: AuditLogInput): Promise<void> {
         action: input.action,
         resourceType: input.resourceType,
         resourceId: input.resourceId,
-        details: input.details ? JSON.stringify(input.details) : null,
+        metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+        ipAddress: input.ipAddress || null,
       },
     });
   } catch (error) {

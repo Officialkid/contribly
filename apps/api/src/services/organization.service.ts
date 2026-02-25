@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
+import { getOrCreateOnboarding } from "./onboarding.service.js";
 
 const prisma = new PrismaClient();
 
@@ -17,6 +18,9 @@ export async function createOrganization(userId: string, name: string) {
       },
     },
   });
+
+  // Initialize onboarding progress for new organization
+  await getOrCreateOnboarding(organization.id);
 
   return { success: true, organization };
 }

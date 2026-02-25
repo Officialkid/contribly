@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { PrismaClient } from "@prisma/client";
 import { generateToken, verifyToken } from "../utils/jwt.js";
+import { updateStep } from "./onboarding.service.js";
 
 const prisma = new PrismaClient();
 
@@ -34,6 +35,32 @@ export async function createInviteLink(
       updatedAt: new Date(),
     },
   });
+
+  // Update onboarding progress when first invite is created
+  try {
+    const department = await prisma.department.findUnique({
+      where: { id: departmentId },
+      select: { organizationId: true },
+    });
+
+    if (department) {
+      // Check if this is the first invite for the organization
+      const inviteCount = await prisma.inviteLink.count({
+        where: {
+          Department: {
+            organizationId: department.organizationId,
+          },
+        },
+      });
+
+      if (inviteCount === 1) {
+        await updateStep(department.organizationId, 4, "inviteSentDone", createdByUserId);
+      }
+    }
+  } catch (error) {
+    console.error("Failed to update onboarding progress:", error);
+    // Don't fail invite creation if onboarding update fails
+  }
 
   return { success: true, invite };
 }

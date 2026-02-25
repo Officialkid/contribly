@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
+import { updateStep } from "./onboarding.service.js";
 
 const prisma = new PrismaClient();
 
@@ -52,6 +53,20 @@ export async function createDepartment(
       updatedAt: new Date(),
     },
   });
+
+  // Update onboarding progress if this is the first department
+  const departmentCount = await prisma.department.count({
+    where: { organizationId },
+  });
+
+  if (departmentCount === 1) {
+    try {
+      await updateStep(organizationId, 3, "deptCreatedDone", creatorUserId);
+    } catch (error) {
+      console.error("Failed to update onboarding progress:", error);
+      // Don't fail department creation if onboarding update fails
+    }
+  }
 
   return { success: true, department };
 }

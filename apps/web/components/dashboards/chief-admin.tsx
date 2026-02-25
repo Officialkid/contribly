@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api-client";
 import { ContributionsSummary } from "@/lib/types";
 import { formatCurrency } from "@/lib/currency";
 import { Card, Table, Badge, Loading, Error, EmptyState, Skeleton, Toast } from "@/components/ui";
+import { SetupIncompleteBanner } from "@/components/dashboard/SetupIncompleteBanner";
 
 export function ChiefAdminDashboard() {
   const { activeOrgId } = useOrg();
@@ -14,6 +15,7 @@ export function ChiefAdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [onboardingState, setOnboardingState] = useState<{ isComplete: boolean; completedSteps: number[] } | null>(null);
 
   useEffect(() => {
     if (!activeOrgId) return;
@@ -32,7 +34,21 @@ export function ChiefAdminDashboard() {
       }
     };
 
+    const fetchOnboardingStatus = async () => {
+      try {
+        const response = await apiClient.getOnboardingStatus(activeOrgId);
+        setOnboardingState({
+          isComplete: response.onboarding.isComplete,
+          completedSteps: response.onboarding.completedSteps,
+        });
+      } catch (err) {
+        // Silently fail - onboarding banner is not critical
+        console.error("Failed to load onboarding status:", err);
+      }
+    };
+
     fetchSummary();
+    fetchOnboardingStatus();
   }, [activeOrgId, year]);
 
   if (isLoading) {
@@ -78,8 +94,16 @@ export function ChiefAdminDashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Setup Incomplete Banner */}
+      {onboardingState && !onboardingState.isComplete && activeOrgId && (
+        <SetupIncompleteBanner 
+          completedSteps={onboardingState.completedSteps} 
+          organizationId={activeOrgId} 
+        />
+      )}
+
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">{" "}
         <div>
           <h1 className="text-3xl font-bold text-text-primary">Organization Overview</h1>
           <p className="text-text-muted mt-1">Complete contribution summary for {year}</p>

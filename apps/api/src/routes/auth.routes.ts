@@ -1,24 +1,22 @@
 import { Router, Response } from "express";
 import { registerUser, loginUser, googleOAuthUser, forgotPassword, resetPassword, generateMFACode, verifyMFACode, verifyMFALogin, enableMFARequest, confirmEnableMFA, disableMFA } from "../services/auth.service.js";
 import { authMiddleware, AuthRequest } from "../middleware/auth.middleware.js";
+import { loginLimiter, forgotPasswordLimiter, registrationLimiter, mfaLimiter, resetPasswordLimiter } from "../middleware/rate-limit.middleware.js";
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, mfaCodeSchema, mfaLoginSchema } from "../validators/auth.validators.js";
 import { sendPasswordResetEmail, sendMFACodeEmail } from "../services/email.service.js";
 import { PrismaClient } from "@prisma/client";
 import passport from "../utils/passport.js";
+import { ZodError } from "zod";
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // REGISTER
-router.post("/register", async (req: AuthRequest, res: Response) => {
+router.post("/register", registrationLimiter, async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password, name, organizationName } = req.body;
-
-    if (!email || !password || !name || !organizationName) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "Email, password, name, and organizationName are required" 
-      });
-    }
+    // Validate input with Zod
+    const validated = registerSchema.parse(req.body);
+    const { email, password, name, organizationName } = validated;
 
     const result = await registerUser(email, password, name, organizationName);
 
@@ -30,7 +28,7 @@ router.post("/register", async (req: AuthRequest, res: Response) => {
     res.cookie("token", result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -44,21 +42,23 @@ router.post("/register", async (req: AuthRequest, res: Response) => {
       success: true,
       user: result.user,
       redirectUrl: redirectUrl.toString(),
+      // DO NOT include token in response body - it's in HTTP-only cookie
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
     console.error("❌ Registration error:", error);
     return res.status(500).json({ success: false, error: "Registration failed" });
   }
 });
 
 // LOGIN
-router.post("/login", async (req: AuthRequest, res: Response) => {
+router.post("/login", loginLimiter, async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: "Email and password required" });
-    }
+    // Validate input with Zod
+    const validated = loginSchema.parse(req.body);
+    const { email, password } = validated;
 
     const result = await loginUser(email, password);
 
@@ -79,7 +79,7 @@ router.post("/login", async (req: AuthRequest, res: Response) => {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+      sameSite: "strict" as const,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
     
@@ -99,18 +99,19 @@ router.post("/login", async (req: AuthRequest, res: Response) => {
       user: result.user,
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
     return res.status(500).json({ success: false, error: "Login failed" });
   }
 });
 
 // VERIFY MFA CODE DURING LOGIN
-router.post("/login/verify-mfa", async (req: AuthRequest, res: Response) => {
+router.post("/login/verify-mfa", mfaLimiter, async (req: AuthRequest, res: Response) => {
   try {
-    const { email, code } = req.body;
-
-    if (!email || !code) {
-      return res.status(400).json({ success: false, error: "Email and verification code required" });
-    }
+    // Validate input with Zod
+    const validated = mfaLoginSchema.parse(req.body);
+    const { email, code } = validated;
 
     const result = await verifyMFALogin(email, code);
 
@@ -122,7 +123,7 @@ router.post("/login/verify-mfa", async (req: AuthRequest, res: Response) => {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+      sameSite: "strict" as const,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
     
@@ -142,6 +143,9 @@ router.post("/login/verify-mfa", async (req: AuthRequest, res: Response) => {
       user: result.user,
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
     console.error("MFA verification error:", error);
     return res.status(500).json({ success: false, error: "MFA verification failed" });
   }
@@ -188,7 +192,7 @@ router.get(
       const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+        sameSite: "strict" as const,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
       
@@ -317,13 +321,11 @@ router.post("/logout", (req: AuthRequest, res: Response) => {
 });
 
 // FORGOT PASSWORD
-router.post("/forgot-password", async (req: AuthRequest, res: Response) => {
+router.post("/forgot-password", forgotPasswordLimiter, async (req: AuthRequest, res: Response) => {
   try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ success: false, error: "Email is required" });
-    }
+    // Validate input with Zod
+    const validated = forgotPasswordSchema.parse(req.body);
+    const { email } = validated;
 
     // Get user to find organizationId for audit log
     const user = await prisma.user.findUnique({ 
@@ -351,19 +353,20 @@ router.post("/forgot-password", async (req: AuthRequest, res: Response) => {
     // Always return success message (don't reveal if email exists)
     return res.json({ success: true, message: "If an account exists with this email, password reset instructions have been sent." });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
     console.error("Forgot password route error:", error);
     return res.status(500).json({ success: false, error: "Failed to process password reset request" });
   }
 });
 
 // RESET PASSWORD
-router.post("/reset-password", async (req: AuthRequest, res: Response) => {
+router.post("/reset-password", resetPasswordLimiter, async (req: AuthRequest, res: Response) => {
   try {
-    const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-      return res.status(400).json({ success: false, error: "Token and new password are required" });
-    }
+    // Validate input with Zod
+    const validated = resetPasswordSchema.parse(req.body);
+    const { token, newPassword } = validated;
 
     const result = await resetPassword(token, newPassword);
 
@@ -373,6 +376,9 @@ router.post("/reset-password", async (req: AuthRequest, res: Response) => {
 
     return res.json({ success: true, message: "Your password has been reset successfully. You can now log in with your new password." });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
     console.error("Reset password route error:", error);
     return res.status(500).json({ success: false, error: "Failed to reset password. Please try again." });
   }
@@ -407,17 +413,16 @@ router.post("/request-mfa", authMiddleware, async (req: AuthRequest, res: Respon
 });
 
 // VERIFY MFA CODE
-router.post("/verify-mfa", authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post("/verify-mfa", authMiddleware, mfaLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
-    const { code } = req.body;
+    
+    // Validate input with Zod
+    const validated = mfaCodeSchema.parse(req.body);
+    const { code } = validated;
 
     if (!userId) {
       return res.status(401).json({ success: false, error: "Not authenticated" });
-    }
-
-    if (!code) {
-      return res.status(400).json({ success: false, error: "Verification code is required" });
     }
 
     const result = await verifyMFACode(userId, code);
@@ -428,6 +433,9 @@ router.post("/verify-mfa", authMiddleware, async (req: AuthRequest, res: Respons
 
     return res.json({ success: true, message: "Verification successful" });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
     console.error("Verify MFA code error:", error);
     return res.status(500).json({ success: false, error: "Failed to verify code" });
   }
@@ -459,17 +467,16 @@ router.post("/mfa/enable", authMiddleware, async (req: AuthRequest, res: Respons
 });
 
 // MFA SETTINGS - Confirm and Enable MFA (Verify OTP)
-router.post("/mfa/confirm", authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post("/mfa/confirm", authMiddleware, mfaLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
-    const { code } = req.body;
+    
+    // Validate input with Zod
+    const validated = mfaCodeSchema.parse(req.body);
+    const { code } = validated;
 
     if (!userId) {
       return res.status(401).json({ success: false, error: "Not authenticated" });
-    }
-
-    if (!code) {
-      return res.status(400).json({ success: false, error: "Verification code is required" });
     }
 
     const result = await confirmEnableMFA(userId, code);
@@ -483,23 +490,25 @@ router.post("/mfa/confirm", authMiddleware, async (req: AuthRequest, res: Respon
       message: "MFA enabled successfully" 
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
     console.error("Confirm enable MFA error:", error);
     return res.status(500).json({ success: false, error: "Failed to enable MFA" });
   }
 });
 
 // MFA SETTINGS - Disable MFA
-router.post("/mfa/disable", authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post("/mfa/disable", authMiddleware, mfaLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
-    const { code } = req.body;
+    
+    // Validate input with Zod
+    const validated = mfaCodeSchema.parse(req.body);
+    const { code } = validated;
 
     if (!userId) {
       return res.status(401).json({ success: false, error: "Not authenticated" });
-    }
-
-    if (!code) {
-      return res.status(400).json({ success: false, error: "Verification code is required" });
     }
 
     const result = await disableMFA(userId, code);
@@ -513,6 +522,9 @@ router.post("/mfa/disable", authMiddleware, async (req: AuthRequest, res: Respon
       message: "MFA disabled successfully" 
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
     console.error("Disable MFA error:", error);
     return res.status(500).json({ success: false, error: "Failed to disable MFA" });
   }

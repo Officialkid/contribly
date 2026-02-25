@@ -72,6 +72,23 @@ router.post(
         return res.status(401).json({ success: false, error: "Unauthorized" });
       }
 
+      // SECURITY: Prevent self-approval of withdrawals
+      const { PrismaClient } = await import("@prisma/client");
+      const prisma = new PrismaClient();
+      const withdrawal = await prisma.withdrawal.findUnique({
+        where: { id: req.params.id },
+        select: { creatorId: true },
+      });
+      await prisma.$disconnect();
+
+      if (!withdrawal) {
+        return res.status(404).json({ success: false, error: "Withdrawal not found" });
+      }
+
+      if (withdrawal.creatorId === context.userId) {
+        return res.status(403).json({ success: false, error: "You cannot approve your own withdrawal" });
+      }
+
       const result = await approveWithdrawal(req.params.id, context.userId, context.organizationId);
 
       if (!result.success) {
@@ -136,6 +153,23 @@ router.post(
         return res.status(400).json({ success: false, error: "OTP is required" });
       }
 
+      // SECURITY: Verify user owns this withdrawal
+      const { PrismaClient } = await import("@prisma/client");
+      const prisma = new PrismaClient();
+      const withdrawal = await prisma.withdrawal.findUnique({
+        where: { id: req.params.id },
+        select: { creatorId: true, departmentId: true },
+      });
+      await prisma.$disconnect();
+
+      if (!withdrawal) {
+        return res.status(404).json({ success: false, error: "Withdrawal not found" });
+      }
+
+      if (withdrawal.creatorId !== context.userId) {
+        return res.status(403).json({ success: false, error: "You can only verify your own withdrawals" });
+      }
+
       const result = await verifyWithdrawalOTP(
         req.params.id,
         context.userId,
@@ -164,6 +198,23 @@ router.post(
       const context = getUserContext(req);
       if (!context) {
         return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      // SECURITY: Verify user owns this withdrawal
+      const { PrismaClient } = await import("@prisma/client");
+      const prisma = new PrismaClient();
+      const withdrawal = await prisma.withdrawal.findUnique({
+        where: { id: req.params.id },
+        select: { creatorId: true, departmentId: true },
+      });
+      await prisma.$disconnect();
+
+      if (!withdrawal) {
+        return res.status(404).json({ success: false, error: "Withdrawal not found" });
+      }
+
+      if (withdrawal.creatorId !== context.userId) {
+        return res.status(403).json({ success: false, error: "You can only resend OTP for your own withdrawals" });
       }
 
       const result = await resendWithdrawalOTP(

@@ -185,6 +185,13 @@ export async function cleanupTestData(testData: TestData): Promise<void> {
   try {
     // Delete in reverse order of creation to respect foreign keys
     
+    // Delete onboarding progress
+    await prisma.onboardingProgress.deleteMany({
+      where: {
+        organizationId: testData.organization.id,
+      },
+    });
+
     // Delete department members
     await prisma.departmentMember.deleteMany({
       where: {

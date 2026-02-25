@@ -36,6 +36,20 @@ export async function registerUser(
   organizationName: string
 ): Promise<AuthPayload> {
   try {
+    // Normalize email (lowercase and trim)
+    email = email.toLowerCase().trim();
+    name = name.trim();
+    organizationName = organizationName.trim();
+
+    // Validate name length
+    if (name.length > 100) {
+      return { success: false, error: "Name must be less than 100 characters" };
+    }
+    
+    if (organizationName.length > 100) {
+      return { success: false, error: "Organization name must be less than 100 characters" };
+    }
+
     // Validate password
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
@@ -47,7 +61,7 @@ export async function registerUser(
       return { success: false, error: "Email already registered with password" };
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     // Create user and organization in a transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -99,6 +113,8 @@ export async function registerUser(
 // LOGIN - Email + Password
 export async function loginUser(email: string, password: string): Promise<AuthPayload> {
   try {
+    // Normalize email (lowercase and trim)
+    email = email.toLowerCase().trim();
     const user = await prisma.user.findUnique({ 
       where: { email },
       include: {
@@ -273,7 +289,7 @@ export async function forgotPassword(
         action: "PASSWORD_RESET_REQUESTED",
         resourceType: "User",
         resourceId: user.id,
-        details: { email },
+        metadata: { email },
       });
     }
 
@@ -340,7 +356,7 @@ export async function resetPassword(
         action: "PASSWORD_RESET_COMPLETED",
         resourceType: "User",
         resourceId: user.id,
-        details: { email: user.email },
+        metadata: { email: user.email },
       });
     }
 
@@ -358,15 +374,19 @@ export async function generateMFACode(userId: string): Promise<{ success: boolea
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const mfaCodeExpiry = new Date(Date.now() + 600000); // 10 minutes from now
 
+    // Hash the MFA code before storing (security best practice)
+    const mfaCodeHash = await bcrypt.hash(code, 10);
+
     await prisma.user.update({
       where: { id: userId },
       data: {
-        mfaCode: code,
+        mfaCode: mfaCodeHash,
         mfaCodeExpiry,
+        mfaAttempts: 0, // Reset attempts when generating new code
       },
     });
 
-    return { success: true, code };
+    return { success: true, code }; // Return plain code to send via email
   } catch (error) {
     console.error("Generate MFA code error:", error);
     return { success: false, error: "Failed to generate verification code" };
@@ -389,7 +409,32 @@ export async function verifyMFACode(
       return { success: false, error: "Verification code has expired" };
     }
 
-    if (user.mfaCode !== code) {
+    // Check if too many failed attempts (max 5)
+    const attempts = user.mfaAttempts || 0;
+    if (attempts >= 5) {
+      // Clear the code after too many attempts
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          mfaCode: null,
+          mfaCodeExpiry: null,
+          mfaAttempts: 0,
+        },
+      });
+      return { success: false, error: "Too many failed attempts. Please request a new verification code." };
+    }
+
+    // Compare hashed code using bcrypt (timing-safe)
+    const codeValid = await bcrypt.compare(code, user.mfaCode);
+    
+    if (!codeValid) {
+      // Increment failed attempts
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          mfaAttempts: attempts + 1,
+        },
+      });
       return { success: false, error: "Invalid verification code" };
     }
 
@@ -399,6 +444,7 @@ export async function verifyMFACode(
       data: {
         mfaCode: null,
         mfaCodeExpiry: null,
+        mfaAttempts: 0,
       },
     });
 

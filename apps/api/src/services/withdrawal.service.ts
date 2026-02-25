@@ -47,7 +47,7 @@ export async function requestWithdrawal(
       action: "WITHDRAWAL_REQUESTED",
       resourceType: "withdrawal",
       resourceId: withdrawal.id,
-      details: { amount, reason },
+      metadata: { amount, reason },
     });
 
     return { success: true, data: withdrawal };
@@ -92,7 +92,7 @@ export async function approveWithdrawal(
       action: "WITHDRAWAL_APPROVED",
       resourceType: "withdrawal",
       resourceId: withdrawalId,
-      details: { amount: withdrawal.amount.toString() },
+      metadata: { amount: withdrawal.amount.toString() },
     });
 
     // Send OTP to approver
@@ -154,7 +154,7 @@ export async function rejectWithdrawal(
       action: "WITHDRAWAL_REJECTED",
       resourceType: "withdrawal",
       resourceId: withdrawalId,
-      details: { reason },
+      metadata: { reason },
     });
 
     return { success: true, data: updated };
@@ -203,7 +203,7 @@ export async function verifyWithdrawalOTP(
         action: "OTP_VERIFICATION_FAILED",
         resourceType: "withdrawal",
         resourceId: withdrawalId,
-        details: { reason: "No valid OTP found" },
+        metadata: { reason: "No valid OTP found" },
       });
       return { success: false, error: "No valid OTP found" };
     }
@@ -215,7 +215,7 @@ export async function verifyWithdrawalOTP(
         action: "OTP_VERIFICATION_FAILED",
         resourceType: "withdrawal",
         resourceId: withdrawalId,
-        details: { reason: "OTP expired" },
+        metadata: { reason: "OTP expired" },
       });
       return { success: false, error: "OTP has expired" };
     }
@@ -227,7 +227,7 @@ export async function verifyWithdrawalOTP(
         action: "OTP_VERIFICATION_FAILED",
         resourceType: "withdrawal",
         resourceId: withdrawalId,
-        details: { reason: "Invalid OTP code" },
+        metadata: { reason: "Invalid OTP code" },
       });
       return { success: false, error: "Invalid OTP code" };
     }
@@ -251,7 +251,7 @@ export async function verifyWithdrawalOTP(
       action: "WITHDRAWAL_COMPLETED",
       resourceType: "withdrawal",
       resourceId: withdrawalId,
-      details: { amount: withdrawal.amount.toString() },
+      metadata: { amount: withdrawal.amount.toString() },
     });
 
     return { success: true, data: updated };
