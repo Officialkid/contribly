@@ -1,3 +1,17 @@
+const runtimeApiOrigin = (process.env.NEXT_PUBLIC_API_URL || "")
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
+
+const connectSrc = ["'self'"];
+
+if (runtimeApiOrigin) {
+  connectSrc.push(runtimeApiOrigin);
+}
+
+if (process.env.NODE_ENV !== "production") {
+  connectSrc.push("http://localhost:3001");
+}
+
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
@@ -36,7 +50,7 @@ const config = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.r2.dev https://*.cloudflare.com",
-              "connect-src 'self' https://contribly-api.onrender.com http://localhost:3001",
+              `connect-src ${connectSrc.join(" ")}`,
               "font-src 'self'",
               "object-src 'none'",
               "base-uri 'self'",
