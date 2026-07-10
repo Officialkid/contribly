@@ -4,23 +4,11 @@
 
 services:
   # ============================================================================
-  # PostgreSQL Database
-  # ============================================================================
-  - type: pserv
-    name: contribly-db
-    env: docker
-    plan: free  # Use 'standard' or higher for production
-    region: oregon
-    databaseName: contribly_db
-    databaseUser: contribly_user
-    ipAllowList: []  # Empty = allow all (required for free tier)
-
-  # ============================================================================
   # Express API Backend
   # ============================================================================
   - type: web
     name: contribly-api
-    env: node
+    runtime: node
     region: oregon
     plan: free  # Use 'starter' or higher for production
     buildCommand: |
@@ -41,9 +29,9 @@ services:
       - key: PORT
         value: 3001
       - key: DATABASE_URL
-        fromDatabase:
-          name: contribly-db
-          property: connectionString
+        sync: false  # Set to Neon pooled connection string
+      - key: DIRECT_URL
+        sync: false  # Set to Neon direct connection string for migrations
       - key: JWT_SECRET
         generateValue: true  # Auto-generate secure secret
       - key: FRONTEND_URL
@@ -81,7 +69,7 @@ services:
   # ============================================================================
   - type: web
     name: contribly-web
-    env: node
+    runtime: node
     region: oregon
     plan: free  # Use 'starter' or higher for production
     buildCommand: |
@@ -109,6 +97,8 @@ services:
 # Deployment Notes
 # ============================================================================
 # 1. Manual setup required:
+#    - Neon DATABASE_URL (pooled)
+#    - Neon DIRECT_URL (direct)
 #    - SMTP credentials (SMTP_HOST, SMTP_USER, SMTP_PASSWORD)
 #    - R2 credentials (if using avatar storage)
 #    - Google OAuth credentials (if using Google login)

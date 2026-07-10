@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model AuditLog {
@@ -50,6 +51,7 @@ model Department {
   Organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   DepartmentMember    DepartmentMember[]
   InviteLink          InviteLink[]
+  notifications       Notification[]
   Payment             Payment[]
   Withdrawal          Withdrawal[]
 
@@ -100,12 +102,14 @@ model Organization {
   name           String
   createdAt      DateTime             @default(now())
   updatedAt      DateTime
-  auditLogs      AuditLog[]
-  chiefAdminPins ChiefAdminPIN[]
-  departments    Department[]
-  members        OrganizationMember[]
-  payments       Payment[]
-  paymentAccount PaymentAccount?
+  auditLogs           AuditLog[]
+  chiefAdminPins      ChiefAdminPIN[]
+  departments         Department[]
+  members             OrganizationMember[]
+  notifications       Notification[]
+  payments            Payment[]
+  paymentAccount      PaymentAccount?
+  onboardingProgress  OnboardingProgress?
 
   @@index([name])
 }
@@ -203,6 +207,7 @@ model User {
   chiefAdminPins      ChiefAdminPIN[]
   departmentMembers   DepartmentMember[]
   inviteLinks         InviteLink[]
+  notifications       Notification[]
   organizationMembers OrganizationMember[]
   paymentClaims       PaymentClaim[]
   withdrawals         Withdrawal[]
@@ -210,6 +215,31 @@ model User {
 
   @@index([email])
   @@index([resetToken])
+}
+
+model Notification {
+  id             String        @id @default(cuid())
+  userId         String
+  organizationId String?
+  departmentId   String?
+  type           String
+  title          String
+  message        String
+  read           Boolean       @default(false)
+  readAt         DateTime?
+  resourceType   String?
+  resourceId     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  department     Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([departmentId])
+  @@index([organizationId])
+  @@index([resourceType, resourceId])
+  @@index([userId, read, createdAt])
 }
 
 model Withdrawal {
@@ -247,6 +277,24 @@ model WithdrawalOTP {
   @@index([code])
   @@index([expiresAt])
   @@index([userId])
+}
+
+model OnboardingProgress {
+  id               String       @id @default(cuid())
+  organizationId   String       @unique
+  currentStep      Int          @default(1)
+  completedSteps   Int[]
+  isComplete       Boolean      @default(false)
+  orgProfileDone   Boolean      @default(false)
+  paymentSetupDone Boolean      @default(false)
+  deptCreatedDone  Boolean      @default(false)
+  inviteSentDone   Boolean      @default(false)
+  completedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  Organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }
 
 enum AccountType {

@@ -1,41 +1,34 @@
 import { Router, Response } from "express";
-import { AuthRequest } from "../middleware/auth.middleware";
-import { authMiddleware } from "../middleware/auth.middleware";
+import { AuthRequest, authMiddleware } from "../middleware/auth.middleware.js";
 import { z } from "zod";
+import {
+  organizationContextMiddleware,
+  requireChiefAdmin,
+} from "../middleware/context.middleware.js";
 import {
   cleanOldAuditLogs,
   getCleanupPreview,
   getAuditLogStorageSize,
-} from "../services/audit-cleanup.service";
+} from "../services/audit-cleanup.service.js";
 
 const router = Router();
 
-// Validation schema for cleanup request
 const cleanupRequestSchema = z.object({
-  retentionDays: z.number().int().min(1).max(3650), // Max 10 years
-  organizationId: z.string().optional(),
+  retentionDays: z.number().int().min(1).max(3650),
   preview: z.boolean().optional().default(false),
 });
 
 /**
- * POST /api/admin/audit-logs/cleanup
- * Clean up old audit logs based on retention policy
- * 
- * Protected: Platform admin only
- * 
- * Body:
- *   {
- *     "retentionDays": 365,
- *     "organizationId": "optional-org-id",
- *     "preview": false
- *   }
+ * POST /api/organizations/:organizationId/admin/audit-logs/cleanup
+ * Protected: CHIEF_ADMIN scoped to the organization in the route
  */
 router.post(
-  "/admin/audit-logs/cleanup",
+  "/organizations/:organizationId/admin/audit-logs/cleanup",
   authMiddleware,
+  organizationContextMiddleware,
+  requireChiefAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
-      // Validate request body
       const validation = cleanupRequestSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({
@@ -45,60 +38,40 @@ router.post(
         });
       }
 
-      const { retentionDays, organizationId, preview } = validation.data;
+      const { retentionDays, preview } = validation.data;
+      const organizationId = req.organizationContext!.organizationId;
+      const actorUserId = req.user!.userId;
 
-      // Security check: Only platform admins can cleanup audit logs
-      // For now, we check if the user is a CHIEF_ADMIN
-      // In production, you might have a separate PLATFORM_ADMIN role
-      const user = req.user;
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          error: "Authentication required",
-        });
-      }
-
-      // Basic authorization: User must be authenticated
-      // TODO: Add proper platform admin role check in production
-      console.log(
-        `🔐 Audit cleanup requested by user: ${user.email} (${user.userId})`
-      );
-
-      // If preview mode, return what would be deleted without actually deleting
       if (preview) {
-        const previewResult = await getCleanupPreview(
-          retentionDays,
-          organizationId
-        );
+        const previewResult = await getCleanupPreview(retentionDays, organizationId);
 
         return res.json({
           success: true,
           preview: true,
           retentionDays,
-          organizationId: organizationId || "ALL",
+          organizationId,
           ...previewResult,
           message: `Preview: Would delete ${previewResult.logsToDelete} logs older than ${previewResult.cutoffDate.toISOString()}`,
         });
       }
 
-      // Perform actual cleanup
-      const result = await cleanOldAuditLogs(retentionDays, organizationId);
+      const result = await cleanOldAuditLogs(retentionDays, organizationId, actorUserId);
 
-      if (result.success) {
-        return res.json({
-          success: true,
-          deletedCount: result.deletedCount,
-          retentionDays: result.retentionDays,
-          cutoffDate: result.cutoffDate,
-          organizationId: organizationId || "ALL",
-          message: `Successfully deleted ${result.deletedCount} audit logs`,
-        });
-      } else {
+      if (!result.success) {
         return res.status(500).json({
           success: false,
           error: result.error || "Cleanup failed",
         });
       }
+
+      return res.json({
+        success: true,
+        deletedCount: result.deletedCount,
+        retentionDays: result.retentionDays,
+        cutoffDate: result.cutoffDate,
+        organizationId,
+        message: `Successfully deleted ${result.deletedCount} audit logs`,
+      });
     } catch (error) {
       console.error("Audit cleanup endpoint error:", error);
       return res.status(500).json({
@@ -110,23 +83,22 @@ router.post(
 );
 
 /**
- * GET /api/admin/audit-logs/storage
- * Get audit log storage statistics
- * 
- * Protected: Platform admin only
+ * GET /api/organizations/:organizationId/admin/audit-logs/storage
+ * Protected: CHIEF_ADMIN scoped to the organization in the route
  */
 router.get(
-  "/admin/audit-logs/storage",
+  "/organizations/:organizationId/admin/audit-logs/storage",
   authMiddleware,
+  organizationContextMiddleware,
+  requireChiefAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
-      const organizationId = req.query.organizationId as string | undefined;
-
+      const organizationId = req.organizationContext!.organizationId;
       const storageInfo = await getAuditLogStorageSize(organizationId);
 
       return res.json({
         success: true,
-        organizationId: organizationId || "ALL",
+        organizationId,
         ...storageInfo,
       });
     } catch (error) {

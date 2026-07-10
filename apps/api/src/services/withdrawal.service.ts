@@ -3,6 +3,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { generateOTP, isOTPExpired, verifyOTPCode } from "../utils/otp.js";
 import { sendOTPEmail, sendWithdrawalApprovedEmail } from "./email.service.js";
 import { createAuditLog } from "./audit.service.js";
+import { createWithdrawalStatusNotification } from "./notification.service.js";
 
 const prisma = new PrismaClient();
 
@@ -112,6 +113,15 @@ export async function approveWithdrawal(
       await sendOTPEmail(approver.email, code);
     }
 
+    await createWithdrawalStatusNotification({
+      userId: updated.creatorId,
+      organizationId,
+      departmentId: updated.departmentId,
+      withdrawalId,
+      approved: true,
+      amount: withdrawal.amount.toString(),
+    });
+
     return { success: true, data: updated };
   } catch (error) {
     return { success: false, error: String(error) };
@@ -155,6 +165,16 @@ export async function rejectWithdrawal(
       resourceType: "withdrawal",
       resourceId: withdrawalId,
       metadata: { reason },
+    });
+
+    await createWithdrawalStatusNotification({
+      userId: withdrawal.creatorId,
+      organizationId,
+      departmentId: withdrawal.departmentId,
+      withdrawalId,
+      approved: false,
+      amount: withdrawal.amount.toString(),
+      reason: reason || null,
     });
 
     return { success: true, data: updated };

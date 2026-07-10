@@ -1,13 +1,18 @@
 import { PrismaClient } from "@prisma/client";
+import { createArrearsReminderNotification } from "./notification.service.js";
 
 const prisma = new PrismaClient();
 
 export interface CarryForwardResult {
   userId: string;
   departmentId: string;
+  organizationId: string;
   monthlyAmount: number;
   totalContributed: number;
   monthsCleared: number;
+  monthsDue: number;
+  arrearsAmount: number;
+  isInArrears: boolean;
   carryForward: number;
   balanceDate: Date;
 }
@@ -49,23 +54,43 @@ export async function calculateCarryForward(
   const monthlyAmount = parseFloat(department.monthlyContribution.toString());
 
   const monthsCleared = Math.floor(totalContributed / monthlyAmount);
+  const monthsDue = asOf.getMonth() + 1;
+  const arrearsAmount = Math.max(0, monthsDue * monthlyAmount - totalContributed);
   const carryForward = totalContributed - monthsCleared * monthlyAmount;
 
   return {
     userId,
     departmentId,
+    organizationId: department.organizationId,
     monthlyAmount,
     totalContributed,
     monthsCleared,
+    monthsDue,
+    arrearsAmount,
+    isInArrears: arrearsAmount > 0,
     carryForward,
     balanceDate: asOf,
   };
 }
 
-export async function getMemberBalanceInDepartment(departmentId: string, userId: string) {
+export async function getMemberBalanceInDepartment(
+  departmentId: string,
+  userId: string,
+  options?: { notifyIfInArrears?: boolean }
+) {
   const carryForward = await calculateCarryForward(departmentId, userId);
   if (!carryForward) {
     return { success: false, error: "Member or department not found" };
+  }
+
+  if (options?.notifyIfInArrears && carryForward.isInArrears) {
+    await createArrearsReminderNotification({
+      userId,
+      organizationId: carryForward.organizationId,
+      departmentId,
+      arrearsAmount: carryForward.arrearsAmount,
+      monthsDue: carryForward.monthsDue,
+    });
   }
 
   return { success: true, balance: carryForward };

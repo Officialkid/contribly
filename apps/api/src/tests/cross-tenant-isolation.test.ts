@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 const API_BASE = process.env.API_BASE_URL || "http://localhost:3001";
@@ -43,7 +44,7 @@ describe("Cross-Tenant Isolation Tests", () => {
 
     // Create Organization A with users and department
     orgA = await prisma.organization.create({
-      data: { name: "Test Organization A" },
+      data: { id: randomUUID(), name: "Test Organization A", updatedAt: new Date() },
     });
 
     const passwordHash = await bcrypt.hash("TestPassword123!", 10);
@@ -66,9 +67,11 @@ describe("Cross-Tenant Isolation Tests", () => {
 
     deptA = await prisma.department.create({
       data: {
+        id: randomUUID(),
         name: "Department A",
         organizationId: orgA.id,
         monthlyContribution: 100,
+        updatedAt: new Date(),
       },
     });
 
@@ -90,15 +93,18 @@ describe("Cross-Tenant Isolation Tests", () => {
 
     await prisma.departmentMember.create({
       data: {
+        id: randomUUID(),
         userId: memberA.id,
         departmentId: deptA.id,
         role: "MEMBER",
+        paymentReference: randomUUID(),
+        updatedAt: new Date(),
       },
     });
 
     // Create Organization B with users and department
     orgB = await prisma.organization.create({
-      data: { name: "Test Organization B" },
+      data: { id: randomUUID(), name: "Test Organization B", updatedAt: new Date() },
     });
 
     chiefAdminB = await prisma.user.create({
@@ -119,9 +125,11 @@ describe("Cross-Tenant Isolation Tests", () => {
 
     deptB = await prisma.department.create({
       data: {
+        id: randomUUID(),
         name: "Department B",
         organizationId: orgB.id,
         monthlyContribution: 100,
+        updatedAt: new Date(),
       },
     });
 
@@ -143,9 +151,12 @@ describe("Cross-Tenant Isolation Tests", () => {
 
     await prisma.departmentMember.create({
       data: {
+        id: randomUUID(),
         userId: memberB.id,
         departmentId: deptB.id,
         role: "MEMBER",
+        paymentReference: randomUUID(),
+        updatedAt: new Date(),
       },
     });
 
@@ -225,7 +236,7 @@ describe("Cross-Tenant Isolation Tests", () => {
       });
 
       expect(response.status).toBe(403);
-      const data = await response.json();
+      const data = await response.json() as any;
       expect(data.success).toBe(false);
       expect(data.error).toContain("organization");
     });
@@ -238,7 +249,7 @@ describe("Cross-Tenant Isolation Tests", () => {
       });
 
       expect(response.status).toBe(200);
-      const data = await response.json();
+      const data = await response.json() as any;
       expect(data.success).toBe(true);
       expect(data.organization.id).toBe(orgA.id);
     });
@@ -257,7 +268,7 @@ describe("Cross-Tenant Isolation Tests", () => {
       });
 
       expect(response.status).toBe(403);
-      const data = await response.json();
+      const data = await response.json() as any;
       expect(data.success).toBe(false);
     });
   });
@@ -356,9 +367,12 @@ describe("Cross-Tenant Isolation Tests", () => {
 
       await prisma.departmentMember.create({
         data: {
+          id: randomUUID(),
           userId: memberA2.id,
           departmentId: deptA.id,
           role: "MEMBER",
+          paymentReference: randomUUID(),
+          updatedAt: new Date(),
         },
       });
 
@@ -372,7 +386,7 @@ describe("Cross-Tenant Isolation Tests", () => {
       );
 
       expect(response.status).toBe(403);
-      const data = await response.json();
+      const data = await response.json() as any;
       expect(data.error).toContain("own balance");
 
       // Cleanup
@@ -412,7 +426,7 @@ describe("Cross-Tenant Isolation Tests", () => {
       );
 
       expect(response.status).toBe(403);
-      const data = await response.json();
+      const data = await response.json() as any;
       expect(data.error).toContain("own withdrawal");
     });
 
@@ -440,7 +454,7 @@ describe("Cross-Tenant Isolation Tests", () => {
       });
 
       expect(response.status).toBe(401);
-      const data = await response.json();
+      const data = await response.json() as any;
       expect(data.success).toBe(false);
     });
 
@@ -495,7 +509,7 @@ describe("Cross-Tenant Isolation Tests", () => {
       );
 
       expect(response.status).toBe(403);
-      const data = await response.json();
+      const data = await response.json() as any;
       expect(data.error).toContain("own withdrawal");
     });
   });

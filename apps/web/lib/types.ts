@@ -42,9 +42,13 @@ export interface Payment {
 export interface CarryForward {
   userId: string;
   departmentId: string;
+  organizationId: string;
   monthlyAmount: number;
   totalContributed: number;
   monthsCleared: number;
+  monthsDue: number;
+  arrearsAmount: number;
+  isInArrears: boolean;
   carryForward: number;
   balanceDate: string;
 }

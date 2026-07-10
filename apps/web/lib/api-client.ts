@@ -7,8 +7,7 @@ import type {
   Withdrawal,
   Department,
 } from "./types";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { API_BASE } from "./api-base";
 
 // Debug mode - enable detailed logging
 const DEBUG_AUTH = typeof window !== "undefined" && (window.location.search.includes("debug=auth") || localStorage.getItem("debug_auth") === "true");

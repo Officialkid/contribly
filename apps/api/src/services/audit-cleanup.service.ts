@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -30,7 +31,8 @@ export interface CleanupResult {
  */
 export async function cleanOldAuditLogs(
   retentionDays: number = 365,
-  organizationId?: string
+  organizationId?: string,
+  actorUserId?: string
 ): Promise<CleanupResult> {
   try {
     // Validate retention days
@@ -85,17 +87,20 @@ export async function cleanOldAuditLogs(
     console.log(`✅ Successfully deleted ${result.count} audit logs`);
 
     // Log the cleanup action itself (meta!)
-    if (organizationId) {
+    if (organizationId && actorUserId) {
       await prisma.auditLog.create({
         data: {
+          id: randomUUID(),
           organizationId,
-          userId: "SYSTEM",
+          userId: actorUserId,
           action: "AUDIT_LOGS_CLEANED",
-          metadata: {
+          resourceType: "audit_logs",
+          resourceId: organizationId,
+          metadata: JSON.stringify({
             retentionDays,
             cutoffDate: cutoffDate.toISOString(),
             deletedCount: result.count,
-          },
+          }),
           ipAddress: null,
         },
       });

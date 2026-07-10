@@ -1,5 +1,6 @@
 import { PrismaClient, ClaimStatus } from "@prisma/client";
 import crypto from "crypto";
+import { createClaimStatusNotification } from "./notification.service.js";
 
 const prisma = new PrismaClient();
 
@@ -133,6 +134,14 @@ export async function approveClaim(
     },
   });
 
+  await createClaimStatusNotification({
+    userId: claim.userId,
+    organizationId,
+    departmentId: claim.departmentId,
+    claimId,
+    approved: true,
+  });
+
   return { success: true, claim: updated };
 }
 
@@ -167,6 +176,15 @@ export async function rejectClaim(
       approvedBy: approverUserId,
       details: reason ? `Rejected: ${reason}` : claim.details,
     },
+  });
+
+  await createClaimStatusNotification({
+    userId: claim.userId,
+    organizationId,
+    departmentId: claim.departmentId,
+    claimId,
+    approved: false,
+    reason: reason || null,
   });
 
   return { success: true, claim: updated };

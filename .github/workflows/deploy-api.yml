@@ -1,0 +1,105 @@
+name: Deploy API to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/api/**"
+      - "packages/database/**"
+      - "scripts/docker/**"
+      - "package.json"
+      - "package-lock.json"
+      - "turbo.json"
+      - ".dockerignore"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY }}
+  CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+  CLOUD_RUN_MIGRATION_JOB: ${{ vars.CLOUD_RUN_MIGRATION_JOB || 'contribly-api-migrate' }}
+  CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT: ${{ vars.CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT }}
+  IMAGE_NAME: contribly-api
+  IMAGE_TAG: ${{ github.sha }}
+  FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+  CORS_ORIGIN: ${{ vars.CORS_ORIGIN }}
+  CORS_ORIGIN_REGEX: ${{ vars.CORS_ORIGIN_REGEX }}
+  GOOGLE_CALLBACK_URL: ${{ vars.GOOGLE_CALLBACK_URL }}
+
+jobs:
+  deploy-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Authorize Docker for Artifact Registry
+        run: gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+
+      - name: Build production API image
+        run: |
+          docker build \
+            -f apps/api/Dockerfile \
+            --target production \
+            -t "${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}" \
+            .
+
+      - name: Push API image
+        run: docker push "${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+      - name: Deploy migration job definition
+        run: |
+          gcloud run jobs deploy "${CLOUD_RUN_MIGRATION_JOB}" \
+            --image "${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}" \
+            --region "${GCP_REGION}" \
+            --project "${GCP_PROJECT_ID}" \
+            --service-account "${CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT}" \
+            --set-secrets "DATABASE_URL=DATABASE_URL:latest,DIRECT_URL=DIRECT_URL:latest,JWT_SECRET=JWT_SECRET:latest,SMTP_HOST=SMTP_HOST:latest,SMTP_PORT=SMTP_PORT:latest,SMTP_USER=SMTP_USER:latest,SMTP_PASSWORD=SMTP_PASSWORD:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,R2_ACCOUNT_ID=R2_ACCOUNT_ID:latest,R2_ACCESS_KEY_ID=R2_ACCESS_KEY_ID:latest,R2_SECRET_ACCESS_KEY=R2_SECRET_ACCESS_KEY:latest,R2_BUCKET_NAME=R2_BUCKET_NAME:latest,R2_PUBLIC_URL=R2_PUBLIC_URL:latest" \
+            --set-env-vars "NODE_ENV=production,PORT=8080,FRONTEND_URL=${FRONTEND_URL},CORS_ORIGIN=${CORS_ORIGIN},CORS_ORIGIN_REGEX=${CORS_ORIGIN_REGEX},GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}" \
+            --command "/bin/sh" \
+            --args=-c,"cd /app && node node_modules/prisma/build/index.js migrate deploy --schema packages/database/prisma/schema.prisma"
+
+      - name: Run migrations against Neon direct connection
+        run: |
+          gcloud run jobs execute "${CLOUD_RUN_MIGRATION_JOB}" \
+            --region "${GCP_REGION}" \
+            --project "${GCP_PROJECT_ID}" \
+            --wait
+
+      - name: Deploy API service to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.CLOUD_RUN_SERVICE }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          flags: >-
+            --allow-unauthenticated
+            --port=8080
+            --service-account=${{ env.CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT }}
+            --min-instances=1
+            --set-env-vars=NODE_ENV=production,PORT=8080,FRONTEND_URL=${{ env.FRONTEND_URL }},CORS_ORIGIN=${{ env.CORS_ORIGIN }},CORS_ORIGIN_REGEX=${{ env.CORS_ORIGIN_REGEX }},GOOGLE_CALLBACK_URL=${{ env.GOOGLE_CALLBACK_URL }}
+            --set-secrets=DATABASE_URL=DATABASE_URL:latest,DIRECT_URL=DIRECT_URL:latest,JWT_SECRET=JWT_SECRET:latest,SMTP_HOST=SMTP_HOST:latest,SMTP_PORT=SMTP_PORT:latest,SMTP_USER=SMTP_USER:latest,SMTP_PASSWORD=SMTP_PASSWORD:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,R2_ACCOUNT_ID=R2_ACCOUNT_ID:latest,R2_ACCESS_KEY_ID=R2_ACCESS_KEY_ID:latest,R2_SECRET_ACCESS_KEY=R2_SECRET_ACCESS_KEY:latest,R2_BUCKET_NAME=R2_BUCKET_NAME:latest,R2_PUBLIC_URL=R2_PUBLIC_URL:latest
+
+      - name: Smoke test health endpoint
+        run: |
+          curl --fail --silent --show-error "${{ steps.deploy.outputs.url }}/health"

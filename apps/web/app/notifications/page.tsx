@@ -106,6 +106,7 @@ export default function NotificationsPage() {
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                     notification.type === "payment" ? "bg-green-100" :
                     notification.type === "claim" ? "bg-blue-100" :
+                    notification.type === "arrears" ? "bg-red-100" :
                     notification.type === "withdrawal" ? "bg-amber-100" :
                     "bg-gray-100"
                   }`}>
@@ -122,6 +123,11 @@ export default function NotificationsPage() {
                     {notification.type === "withdrawal" && (
                       <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    {notification.type === "arrears" && (
+                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3l9 16H3l9-16z" />
                       </svg>
                     )}
                   </div>

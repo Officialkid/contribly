@@ -4,6 +4,7 @@ import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
+import { API_BASE } from "@/lib/api-base";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -96,7 +97,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/login/verify-mfa`, {
+      const response = await fetch(`${API_BASE}/api/auth/login/verify-mfa`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -230,7 +231,7 @@ export default function LoginPage() {
 
                     {/* Google Sign-In Button */}
                     <a
-                      href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/google`}
+                      href={`${API_BASE}/api/auth/google`}
                       className="w-full py-3 border-2 border-border rounded-button font-semibold text-base text-text-primary hover:bg-background hover:border-primary transition-all duration-300 flex items-center justify-center gap-3"
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

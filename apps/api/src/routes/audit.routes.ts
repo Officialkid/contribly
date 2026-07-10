@@ -1,8 +1,7 @@
 import { Router, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { AuthRequest } from "../middleware/auth.middleware";
-import { authMiddleware } from "../middleware/auth.middleware";
-import { organizationContextMiddleware, requireChiefAdmin } from "../middleware/context.middleware";
+import { AuthRequest, authMiddleware } from "../middleware/auth.middleware.js";
+import { organizationContextMiddleware, requireChiefAdmin } from "../middleware/context.middleware.js";
 import { z } from "zod";
 
 const router = Router();
@@ -78,7 +77,7 @@ router.get(
         skip,
         take: limit,
         include: {
-          user: {
+          User: {
             select: {
               id: true,
               email: true,
@@ -93,8 +92,8 @@ router.get(
         id: log.id,
         organizationId: log.organizationId,
         userId: log.userId,
-        userName: log.user?.name || null,
-        userEmail: log.user?.email || null,
+        userName: log.User?.name || null,
+        userEmail: log.User?.email || null,
         action: log.action,
         metadata: log.metadata,
         ipAddress: log.ipAddress,

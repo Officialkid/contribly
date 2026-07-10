@@ -1,4 +1,5 @@
 import { PrismaClient, PaymentStatus } from "@prisma/client";
+import { createPaymentMatchedNotification } from "./notification.service.js";
 
 const prisma = new PrismaClient();
 
@@ -40,6 +41,15 @@ export async function matchPayment(
     },
   });
 
+  await createPaymentMatchedNotification({
+    userId,
+    organizationId,
+    departmentId,
+    amount: updated.amount.toString(),
+    paymentId: updated.id,
+    departmentName: updated.department?.name,
+  });
+
   return { success: true, payment: updated };
 }
 
@@ -76,6 +86,15 @@ export async function matchPaymentByReference(
     include: {
       department: { select: { id: true, name: true } },
     },
+  });
+
+  await createPaymentMatchedNotification({
+    userId: deptMember.userId,
+    organizationId,
+    departmentId,
+    amount: updated.amount.toString(),
+    paymentId: updated.id,
+    departmentName: updated.department?.name,
   });
 
   return { success: true, payment: updated };

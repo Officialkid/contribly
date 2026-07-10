@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useOrg } from "@/lib/org-context";
+import { API_BASE } from "@/lib/api-base";
 
 export function MFASettings() {
   const { user } = useOrg();
@@ -26,7 +27,7 @@ export function MFASettings() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/mfa/status`,
+        `${API_BASE}/api/auth/mfa/status`,
         {
           method: "GET",
           credentials: "include",
@@ -54,7 +55,7 @@ export function MFASettings() {
       setSuccess(null);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/mfa/enable`,
+        `${API_BASE}/api/auth/mfa/enable`,
         {
           method: "POST",
           credentials: "include",
@@ -85,7 +86,7 @@ export function MFASettings() {
 
       // First attempt to disable (will request verification code)
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/mfa/disable`,
+        `${API_BASE}/api/auth/mfa/disable`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -161,7 +162,7 @@ export function MFASettings() {
 
       const endpoint = otpMode === "enable" ? "/api/auth/mfa/confirm" : "/api/auth/mfa/disable";
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${endpoint}`,
+        `${API_BASE}${endpoint}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

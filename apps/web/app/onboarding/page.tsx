@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useOrg } from "@/lib/org-context";
 import { apiClient } from "@/lib/api-client";
@@ -25,11 +25,22 @@ interface OnboardingState {
   percentComplete: number;
 }
 
-export default function OnboardingPage() {
+function LoadingState() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
+        <p className="text-lg text-slate-600">Loading your setup...</p>
+      </div>
+    </div>
+  );
+}
+
+function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeOrg, activeOrgId, isLoading: orgLoading } = useOrg();
-  
+
   const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +48,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!orgLoading && activeOrgId) {
-      fetchOnboardingStatus();
+      void fetchOnboardingStatus();
     }
   }, [activeOrgId, orgLoading]);
 
@@ -51,13 +62,11 @@ export default function OnboardingPage() {
       const response = await apiClient.getOnboardingStatus(activeOrgId);
       const state = response.onboarding;
 
-      // If onboarding is complete, redirect to dashboard
       if (state.isComplete) {
         router.push(`/orgs/${activeOrgId}`);
         return;
       }
 
-      // Check if there's a step query param to override current step
       const stepParam = searchParams?.get("step");
       if (stepParam) {
         const step = parseInt(stepParam, 10);
@@ -75,12 +84,10 @@ export default function OnboardingPage() {
   };
 
   const handleNext = async () => {
-    // Refresh onboarding state to get updated currentStep
     await fetchOnboardingStatus();
   };
 
   const handleSkip = async () => {
-    // Move to next step without marking current as complete
     if (onboardingState) {
       setOnboardingState({
         ...onboardingState,
@@ -105,7 +112,6 @@ export default function OnboardingPage() {
   const handleReturnToIncomplete = () => {
     if (!onboardingState) return;
 
-    // Find first incomplete step
     if (!onboardingState.orgProfileDone) {
       setOnboardingState({ ...onboardingState, currentStep: 1 });
     } else if (!onboardingState.paymentSetupDone) {
@@ -117,19 +123,10 @@ export default function OnboardingPage() {
     }
   };
 
-  // Loading state
   if (orgLoading || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
-          <p className="text-lg text-slate-600">Loading your setup...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -143,7 +140,7 @@ export default function OnboardingPage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Something went wrong</h2>
             <p className="text-slate-600 mb-6">{error}</p>
             <button
-              onClick={() => fetchOnboardingStatus()}
+              onClick={() => void fetchOnboardingStatus()}
               className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors font-medium"
             >
               Try Again
@@ -154,7 +151,6 @@ export default function OnboardingPage() {
     );
   }
 
-  // No active org
   if (!activeOrgId || !activeOrg) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -172,20 +168,17 @@ export default function OnboardingPage() {
     );
   }
 
-  // No onboarding state yet
   if (!onboardingState) {
     return null;
   }
 
   return (
     <div className="animate-in fade-in duration-500">
-      {/* Progress indicator */}
-      <OnboardingProgress 
-        currentStep={onboardingState.currentStep} 
-        completedSteps={onboardingState.completedSteps} 
+      <OnboardingProgress
+        currentStep={onboardingState.currentStep}
+        completedSteps={onboardingState.completedSteps}
       />
 
-      {/* Current step content */}
       <div className="animate-in slide-in-from-bottom-4 duration-300">
         {onboardingState.currentStep === 1 && (
           <StepOne_OrgProfile
@@ -239,5 +232,13 @@ export default function OnboardingPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <OnboardingContent />
+    </Suspense>
   );
 }

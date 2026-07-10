@@ -98,6 +98,8 @@ Edit `.env.test` and add your test database URL:
 TEST_DATABASE_URL=postgresql://user:password@localhost:5432/contribly_test
 ```
 
+`.env.test` is local-only and must stay untracked. Commit changes only to `.env.test.example` when the template itself needs to change.
+
 **Example URLs:**
 
 Local:

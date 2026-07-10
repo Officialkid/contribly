@@ -105,7 +105,7 @@ export async function updateStep(
     action: "ONBOARDING_STEP_COMPLETED",
     resourceType: "onboarding",
     resourceId: updated.id,
-    details: { step, field: fieldName },
+      metadata: { step, field: fieldName },
   });
 
   // Log completion if all done
@@ -116,7 +116,7 @@ export async function updateStep(
       action: "ONBOARDING_COMPLETED",
       resourceType: "onboarding",
       resourceId: updated.id,
-      details: { totalSteps: 4 },
+      metadata: { totalSteps: 4 },
     });
   }
 
@@ -171,7 +171,7 @@ export async function completeOnboarding(
     action: "ONBOARDING_COMPLETED",
     resourceType: "onboarding",
     resourceId: updated.id,
-    details: { skipped: true },
+    metadata: { skipped: true },
   });
 
   return {

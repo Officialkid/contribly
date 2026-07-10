@@ -170,7 +170,8 @@ router.get(
 
     const result = await getMemberBalanceInDepartment(
       req.departmentContext!.departmentId,
-      userId
+      userId,
+      { notifyIfInArrears: userId === req.user!.userId }
     );
 
     if (!result.success) return res.status(400).json(result);

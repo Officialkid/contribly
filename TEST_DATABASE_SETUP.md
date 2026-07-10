@@ -28,12 +28,19 @@ CREATE DATABASE contribly_test;
 
 ### Step 3: Update .env.test File
 
-File already created at: `apps/api/.env.test`
+Create the file locally from the example:
+
+```powershell
+cd apps/api
+Copy-Item .env.test.example .env.test
+```
 
 Update the password if needed:
 ```env
 TEST_DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/contribly_test
 ```
+
+`apps/api/.env.test` is intentionally gitignored and should never be committed.
 
 ### Step 4: Run Migrations on Test Database
 

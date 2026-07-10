@@ -192,6 +192,19 @@ export async function cleanupTestData(testData: TestData): Promise<void> {
       },
     });
 
+    await prisma.notification.deleteMany({
+      where: {
+        OR: [
+          { organizationId: testData.organization.id },
+          {
+            userId: {
+              in: [testData.chiefAdmin.id, testData.member1.id, testData.member2.id],
+            },
+          },
+        ],
+      },
+    });
+
     // Delete department members
     await prisma.departmentMember.deleteMany({
       where: {

@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./load-env.js";
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -32,7 +32,7 @@ if (missingVars.length > 0) {
   missingVars.forEach((varName) => {
     console.error(`   - ${varName}`);
   });
-  console.error("\n   Please set these variables in your .env file or hosting platform.");
+  console.error("\n   Please set these variables in apps/api/.env.local or your hosting platform.");
   console.error("   Server cannot start without these variables.");
   process.exit(1);
 }
@@ -52,6 +52,23 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
+function parseEnvList(value?: string) {
+  return value?.split(",").map((item) => item.trim()).filter(Boolean) || [];
+}
+
+function parseOriginRegexes(value?: string) {
+  return parseEnvList(value)
+    .map((pattern) => {
+      try {
+        return new RegExp(pattern);
+      } catch {
+        console.error(`Invalid CORS_ORIGIN_REGEX pattern: ${pattern}`);
+        return null;
+      }
+    })
+    .filter((regex): regex is RegExp => regex instanceof RegExp);
+}
+
 // Trust proxy so HTTPS redirects are respected behind Render/other proxies
 app.set("trust proxy", 1);
 
@@ -61,16 +78,15 @@ app.set("trust proxy", 1);
 const allowedOrigins = IS_PRODUCTION
   ? [
       process.env.FRONTEND_URL,
-      "https://contribly-web.onrender.com",
-      "https://contribly.onrender.com",
       // Add additional production URLs from CORS_ORIGIN if needed
-      ...(process.env.CORS_ORIGIN?.split(",").map((origin) => origin.trim()) || []),
+      ...parseEnvList(process.env.CORS_ORIGIN),
     ].filter(Boolean)
   : [
       "http://localhost:3000",
       "http://localhost:3001",
       process.env.FRONTEND_URL,
     ].filter(Boolean);
+const allowedOriginRegexes = IS_PRODUCTION ? parseOriginRegexes(process.env.CORS_ORIGIN_REGEX) : [];
 
 console.log(
   IS_PRODUCTION ? "🔒 Production CORS enabled" : "🔓 Development CORS enabled"
@@ -88,7 +104,10 @@ app.use(
       }
 
       // Check if origin is in allowed list
-      if (allowedOrigins.includes(origin)) {
+      if (
+        allowedOrigins.includes(origin) ||
+        allowedOriginRegexes.some((regex) => regex.test(origin))
+      ) {
         console.log(`✅ CORS: Allowing origin: ${origin}`);
         callback(null, true);
       } else {
@@ -201,6 +220,9 @@ void (async () => {
     const userRoutes = (await import("./routes/user.routes.js")).default;
     console.log("✓ User routes loaded");
 
+    const notificationRoutes = (await import("./routes/notification.routes.js")).default;
+    console.log("âœ“ Notification routes loaded");
+
     const auditRoutes = (await import("./routes/audit.routes.js")).default;
     console.log("✓ Audit routes loaded");
 
@@ -214,6 +236,7 @@ void (async () => {
     app.use("/api", inviteRoutes);
     app.use("/api/onboarding", onboardingRoutes);
     app.use("/api/user", userRoutes);
+    app.use("/api/notifications", notificationRoutes);
     app.use("/api", auditRoutes);
     app.use("/api", adminRoutes);
     console.log("✓ All routes registered successfully");

@@ -84,7 +84,7 @@ apps/web/
 
 ### Prerequisites
 - Node.js 18+
-- Backend API running on http://localhost:3001/api
+- Backend API running on http://localhost:3001
 
 ### Installation
 
@@ -101,7 +101,7 @@ cp .env.example .env.local
 
 Then edit `.env.local`:
 ```
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
 
 3. **Run development server**
@@ -210,19 +210,11 @@ npm run start
 
 ### Environment Variables (Production)
 ```
-NEXT_PUBLIC_API_URL=https://api.yourdomain.com/api
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
 ```
 
 ### Docker (Optional)
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY . .
-RUN npm install
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "run", "start"]
-```
+Use the full-stack Docker workflow in [docs/LOCAL_DEVELOPMENT.md](C:\Users\DANIEL\Documents\WebApp Projects\contribly\docs\LOCAL_DEVELOPMENT.md). It starts Postgres, the API, and the Next.js app together so contributors can choose either a native flow or a Docker-based flow that behaves the same across operating systems.
 
 ## Key Design Patterns
 
