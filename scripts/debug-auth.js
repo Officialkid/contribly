@@ -15,8 +15,8 @@
 import https from 'https';
 import http from 'http';
 
-const API_URL = process.env.API_URL || 'https://contribly-api.onrender.com';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://contribly-web.onrender.com';
+const API_URL = process.env.API_URL || 'https://your-cloud-run-service-url';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://contribly-web.vercel.app';
 
 const TEST_EMAIL = process.argv[2] || 'test@example.com';
 const TEST_PASSWORD = process.argv[3] || 'TestPass123!';
@@ -267,8 +267,8 @@ async function runTests() {
     console.log('🚨 Some tests failed. Review the output above for details.');
     console.log('\n💡 Common fixes:');
     console.log('  1. Ensure API is deployed and running');
-    console.log('  2. Check FRONTEND_URL environment variable on Render');
-    console.log('  3. Verify JWT_SECRET is set on Render');
+    console.log('  2. Check FRONTEND_URL and CORS settings on Cloud Run');
+    console.log('  3. Verify JWT_SECRET is set in Secret Manager / runtime secrets');
     console.log('  4. Check cookie SameSite/Secure attributes in production');
   } else {
     console.log('⚠️  Tests passed with warnings. Review output for potential issues.');

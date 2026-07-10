@@ -69,7 +69,7 @@ function parseOriginRegexes(value?: string) {
     .filter((regex): regex is RegExp => regex instanceof RegExp);
 }
 
-// Trust proxy so HTTPS redirects are respected behind Render/other proxies
+// Trust proxy so HTTPS redirects are respected behind Cloud Run and other proxies
 app.set("trust proxy", 1);
 
 // ============================================================================
@@ -135,7 +135,7 @@ app.get("/", (req, res) => {
 });
 
 // ============================================================================
-// HEALTH CHECK ENDPOINT (for Render auto-restart)
+// HEALTH CHECK ENDPOINT (for Cloud Run and other platform health probes)
 // ============================================================================
 app.get("/health", (req, res) => {
   res.json({
@@ -269,7 +269,7 @@ process.on("unhandledRejection", (reason, promise) => {
   if (reason instanceof Error) {
     console.error("   Stack:", reason.stack);
   }
-  // In production, exit so Render can restart the service
+  // In production, exit so the hosting platform can restart the service
   if (IS_PRODUCTION) {
     console.error("   Exiting in 1 second...");
     setTimeout(() => process.exit(1), 1000);

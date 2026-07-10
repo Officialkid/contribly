@@ -5,7 +5,7 @@
  * Verifies that a deployed Contribly API instance is healthy and properly configured.
  * 
  * Usage:
- *   npx tsx scripts/verify-deployment.ts https://contribly-api.onrender.com
+ *   npx tsx scripts/verify-deployment.ts https://your-cloud-run-service-url
  *   npx tsx scripts/verify-deployment.ts http://localhost:3001
  */
 
@@ -273,7 +273,7 @@ async function main() {
     console.log("Usage:");
     console.log("  npx tsx scripts/verify-deployment.ts <api-url>\n");
     console.log("Examples:");
-    console.log("  npx tsx scripts/verify-deployment.ts https://contribly-api.onrender.com");
+    console.log("  npx tsx scripts/verify-deployment.ts https://your-cloud-run-service-url");
     console.log("  npx tsx scripts/verify-deployment.ts http://localhost:3001");
     process.exit(1);
   }
