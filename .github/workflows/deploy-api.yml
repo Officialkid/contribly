@@ -1,3 +1,7 @@
+#
+# Note: keep this workflow easy to retrigger from source control when Cloud Run
+# needs a fresh deployment after infrastructure changes.
+#
 name: Deploy API to Cloud Run
 
 on:
