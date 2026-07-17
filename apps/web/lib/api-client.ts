@@ -6,6 +6,8 @@ import type {
   PaymentClaim,
   Withdrawal,
   Department,
+  MemberLedgerImportRow,
+  MemberLedgerRecord,
 } from "./types";
 import { API_BASE } from "./api-base";
 
@@ -163,6 +165,40 @@ export const apiClient = {
   updateDepartment(orgId: string, deptId: string, data: { name?: string; monthlyContribution?: string }) {
     return request(`/api/organizations/${orgId}/departments/${deptId}`, {
       method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  importMemberLedger(orgId: string, deptId: string, year: number, rows: MemberLedgerImportRow[]) {
+    return request<{ success: boolean; created: number; updated: number; linked: number; total: number }>(
+      `/api/organizations/${orgId}/departments/${deptId}/member-ledger/import`,
+      {
+        method: "POST",
+        body: JSON.stringify({ year, rows }),
+      }
+    );
+  },
+
+  listMemberLedger(orgId: string, deptId: string, year: number) {
+    return request<{ success: boolean; year: number; members: MemberLedgerRecord[] }>(
+      `/api/organizations/${orgId}/departments/${deptId}/member-ledger?year=${year}`
+    );
+  },
+
+  getMyMemberLedger(orgId: string, deptId: string, year: number) {
+    return request<{ success: boolean; year: number; members: MemberLedgerRecord[] }>(
+      `/api/organizations/${orgId}/departments/${deptId}/member-ledger/me?year=${year}`
+    );
+  },
+
+  recordMemberLedgerPayment(
+    orgId: string,
+    deptId: string,
+    memberLedgerId: string,
+    data: { amount: number; reference?: string | null; accountNumber?: string | null; transactionDate: string }
+  ) {
+    return request(`/api/organizations/${orgId}/departments/${deptId}/member-ledger/${memberLedgerId}/payments`, {
+      method: "POST",
       body: JSON.stringify(data),
     });
   },

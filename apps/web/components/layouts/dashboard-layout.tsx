@@ -130,6 +130,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       show: isChiefAdmin,
     },
     {
+      name: "Member Ledger",
+      href: `/orgs/${activeOrgId}/ledger`,
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m3 10H6a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z" />
+        </svg>
+      ),
+      show: true,
+    },
+    {
       name: "Claims",
       href: `/orgs/${activeOrgId}/claims`,
       icon: (

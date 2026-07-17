@@ -110,3 +110,37 @@ export interface DepartmentContributions {
     balance: CarryForward | null;
   }>;
 }
+
+export interface MemberLedgerPayment {
+  id: string;
+  amount: number;
+  reference: string | null;
+  transactionDate: string;
+  status: "MATCHED" | "CLAIMED";
+}
+
+export interface MemberLedgerRecord {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  year: number;
+  expectedAmount: number;
+  paidAmount: number;
+  balance: number;
+  progressPercent: number;
+  paymentReference: string;
+  notes: string | null;
+  linked: boolean;
+  user: { id: string; email: string; name: string | null } | null;
+  payments: MemberLedgerPayment[];
+}
+
+export interface MemberLedgerImportRow {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  expectedAmount: number;
+  paymentReference?: string | null;
+  notes?: string | null;
+}

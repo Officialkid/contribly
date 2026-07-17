@@ -3,6 +3,7 @@ import crypto from "crypto";
 import passport from "passport";
 import { Profile, Strategy as GoogleStrategy, VerifyCallback } from "passport-google-oauth20";
 import { generateToken } from "./jwt.js";
+import { linkLedgerRecordsToUser } from "../services/member-ledger.service.js";
 
 const prisma = new PrismaClient();
 export const isGoogleOAuthConfigured = Boolean(
@@ -63,7 +64,8 @@ if (isGoogleOAuthConfigured) {
               });
             }
 
-            organizationId = user.organizationMembers[0]?.organizationId;
+            const linked = await linkLedgerRecordsToUser(prisma, user.id, email);
+            organizationId = user.organizationMembers[0]?.organizationId || linked.organizationId;
           } else {
             const result = await prisma.$transaction(async (tx) => {
               const newUser = await tx.user.create({
@@ -75,6 +77,11 @@ if (isGoogleOAuthConfigured) {
                   passwordHash: null,
                 },
               });
+
+              const linked = await linkLedgerRecordsToUser(tx, newUser.id, email);
+              if (linked.organizationId) {
+                return { user: newUser, organizationId: linked.organizationId };
+              }
 
               const organization = await tx.organization.create({
                 data: {
