@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { apiClient } from "@/lib/api-client";
+import { parseCurrencyInput } from "@/lib/currency";
 
 interface StepThreeProps {
   organizationId: string;
@@ -24,7 +25,9 @@ export function StepThree_CreateDepartment({ organizationId, onNext, onSkip, onD
       return;
     }
 
-    if (!monthlyContribution.trim() || parseFloat(monthlyContribution) <= 0) {
+    const monthlyContributionCents = parseCurrencyInput(monthlyContribution);
+
+    if (!monthlyContribution.trim() || monthlyContributionCents <= 0) {
       setError("Please enter a valid contribution amount");
       return;
     }
@@ -36,7 +39,7 @@ export function StepThree_CreateDepartment({ organizationId, onNext, onSkip, onD
       // Create department
       const response: any = await apiClient.createDepartment(organizationId, {
         name: name.trim(),
-        monthlyContribution: monthlyContribution,
+        monthlyContribution: String(monthlyContributionCents),
       });
 
       const departmentId = response.department?.id;

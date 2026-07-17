@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency, parseCurrencyInput } from "@/lib/currency";
 import { useOrg } from "@/lib/org-context";
 import type { MemberLedgerImportRow, MemberLedgerRecord } from "@/lib/types";
 import { Card, EmptyState, Error as ErrorView, Loading } from "@/components/ui";
@@ -18,7 +18,7 @@ function parseExcelRows(value: string): MemberLedgerImportRow[] {
       const [name, email, phone, expectedAmount, paymentReference, notes] = line
         .split("\t")
         .map((cell) => cell.trim());
-      const amount = Number((expectedAmount || "0").replace(/,/g, ""));
+      const amount = parseCurrencyInput(expectedAmount || "0");
       if (!name || !Number.isFinite(amount) || amount < 0) {
         throw new Error(`Row ${index + 1} needs a name and a valid expected amount.`);
       }
@@ -89,7 +89,7 @@ export default function MemberLedgerPage() {
   const recordPayment = async (event: FormEvent) => {
     event.preventDefault();
     if (!activeOrgId || !activeDeptId || !selectedMember) return;
-    const amount = Number(payment.amount);
+    const amount = parseCurrencyInput(payment.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       setError("Enter a valid payment amount.");
       return;
@@ -155,14 +155,14 @@ export default function MemberLedgerPage() {
         <Card className="p-6">
           <h2 className="text-xl font-bold text-text-primary">Paste from Excel</h2>
           <p className="mt-1 text-sm text-text-muted">
-            Copy rows in this order: Name, Email, Phone, Expected amount, Payment reference, Notes.
+            Copy rows in this order: Name, Email, Phone, Expected amount in KES, Payment reference, Notes.
           </p>
           <form onSubmit={importRows} className="mt-4 space-y-3">
             <textarea
               value={excelRows}
               onChange={(event) => setExcelRows(event.target.value)}
               rows={6}
-              placeholder={"Jane Wanjiku\tjane@example.com\t0712345678\t12000\tHVD-JANE-2026\t"}
+              placeholder={"Jane Wanjiku\tjane@example.com\t0712345678\t120.00\tHVD-JANE-2026\t"}
               className="w-full rounded-button border-2 border-border bg-background p-4 font-mono text-sm focus:border-primary focus:outline-none"
             />
             <button disabled={isSaving} className="rounded-button bg-primary px-5 py-2.5 font-semibold text-white disabled:opacity-50">
@@ -176,7 +176,7 @@ export default function MemberLedgerPage() {
         <Card className="border-2 border-primary/30 p-6">
           <h2 className="text-xl font-bold">Record payment for {selectedMember.name}</h2>
           <form onSubmit={recordPayment} className="mt-4 grid gap-3 md:grid-cols-4">
-            <input required type="number" min="0.01" step="0.01" placeholder="Amount" value={payment.amount} onChange={(e) => setPayment({ ...payment, amount: e.target.value })} className="rounded-button border-2 border-border px-3 py-2" />
+            <input required type="number" min="0.01" step="0.01" placeholder="Amount (KES)" value={payment.amount} onChange={(e) => setPayment({ ...payment, amount: e.target.value })} className="rounded-button border-2 border-border px-3 py-2" />
             <input placeholder="Transaction/reference code" value={payment.reference} onChange={(e) => setPayment({ ...payment, reference: e.target.value })} className="rounded-button border-2 border-border px-3 py-2" />
             <input placeholder="PoChi/account number" value={payment.accountNumber} onChange={(e) => setPayment({ ...payment, accountNumber: e.target.value })} className="rounded-button border-2 border-border px-3 py-2" />
             <div className="flex gap-2">

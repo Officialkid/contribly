@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useOrg } from "@/lib/org-context";
 import { apiClient } from "@/lib/api-client";
+import { parseCurrencyInput } from "@/lib/currency";
 
 interface CreateDepartmentModalProps {
   onClose: () => void;
@@ -31,7 +32,7 @@ export function CreateDepartmentModal({ onClose, onSuccess }: CreateDepartmentMo
     try {
       const response = await apiClient.createDepartment(activeOrgId, {
         name: name.trim(),
-        monthlyContribution: monthlyAmount ? parseFloat(monthlyAmount).toFixed(2) : null,
+        monthlyContribution: monthlyAmount ? String(parseCurrencyInput(monthlyAmount)) : null,
       });
 
       if ((response as any).department?.id) {

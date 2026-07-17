@@ -62,6 +62,39 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const drawer = mobileDrawerRef.current;
+    const closeBtn = closeButtonRef.current;
+    closeBtn?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+
+      if (event.key === "Tab" && drawer) {
+        const focusable = drawer.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileMenuOpen]);
+
   if (!user) {
     return null;
   }
@@ -181,39 +214,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     reset();
     router.push("/login");
   };
-
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-
-    const drawer = mobileDrawerRef.current;
-    const closeBtn = closeButtonRef.current;
-    closeBtn?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMobileMenuOpen(false);
-      }
-
-      if (event.key === "Tab" && drawer) {
-        const focusable = drawer.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [mobileMenuOpen]);
 
   return (
     <div className="min-h-screen bg-background">
