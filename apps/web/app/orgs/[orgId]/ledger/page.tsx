@@ -120,6 +120,8 @@ export default function MemberLedgerPage() {
 
   const expected = members.reduce((sum, member) => sum + member.expectedAmount, 0);
   const paid = members.reduce((sum, member) => sum + member.paidAmount, 0);
+  const linkedMembers = members.filter((member) => member.linked).length;
+  const awaitingSignupMembers = members.length - linkedMembers;
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
@@ -145,10 +147,15 @@ export default function MemberLedgerPage() {
       {error && <ErrorView message={error} />}
       {notice && <div className="rounded-button border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">{notice}</div>}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className="p-5"><p className="text-sm text-text-muted">Members</p><p className="mt-2 text-3xl font-bold">{members.length}</p></Card>
         <Card className="p-5"><p className="text-sm text-text-muted">Expected</p><p className="mt-2 text-3xl font-bold">{formatCurrency(expected)}</p></Card>
         <Card className="p-5"><p className="text-sm text-text-muted">Received</p><p className="mt-2 text-3xl font-bold text-green-700">{formatCurrency(paid)}</p></Card>
+        <Card className="p-5">
+          <p className="text-sm text-text-muted">Awaiting signup</p>
+          <p className="mt-2 text-3xl font-bold text-amber-700">{awaitingSignupMembers}</p>
+          <p className="mt-2 text-xs text-text-muted">{linkedMembers} already linked to real accounts</p>
+        </Card>
       </div>
 
       {isAdmin && (
@@ -157,6 +164,16 @@ export default function MemberLedgerPage() {
           <p className="mt-1 text-sm text-text-muted">
             Copy rows in this order: Name, Email, Phone, Expected amount in KES, Payment reference, Notes.
           </p>
+          <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-text-muted">
+            <p className="font-semibold text-text-primary">How this works for real collections</p>
+            <p className="mt-1">
+              You can import members before they sign up, record PoChi, cash, or bank payments manually, and let members join later.
+              When someone signs in with the same email, their ledger record links automatically so they can see their own progress in the app.
+            </p>
+            <p className="mt-2">
+              If a member has not signed up yet, keep their phone number or payment reference accurate so you can still track contributions cleanly this year.
+            </p>
+          </div>
           <form onSubmit={importRows} className="mt-4 space-y-3">
             <textarea
               value={excelRows}
