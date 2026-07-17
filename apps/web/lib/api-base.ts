@@ -23,8 +23,11 @@ const INTERNAL_API_BASE =
   resolveApiBase(process.env.API_SERVER_URL, process.env.NEXT_PUBLIC_API_URL) ||
   (process.env.NODE_ENV === "production" ? PROD_FALLBACK_API_BASE : DEV_FALLBACK_API_BASE);
 
+// Browser requests stay on the Vercel origin and are proxied to Cloud Run.
+// This keeps authentication cookies first-party in browsers that block third-party cookies.
 const PUBLIC_API_BASE =
-  resolveApiBase(process.env.NEXT_PUBLIC_API_URL) ||
-  (process.env.NODE_ENV === "production" ? PROD_FALLBACK_API_BASE : DEV_FALLBACK_API_BASE);
+  process.env.NODE_ENV === "production"
+    ? ""
+    : resolveApiBase(process.env.NEXT_PUBLIC_API_URL) || DEV_FALLBACK_API_BASE;
 
 export const API_BASE = typeof window === "undefined" ? INTERNAL_API_BASE : PUBLIC_API_BASE;

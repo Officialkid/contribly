@@ -231,7 +231,7 @@ export default function LoginPage() {
 
                     {/* Google Sign-In Button */}
                     <a
-                      href={`${API_BASE}/api/auth/google`}
+                      href="/api/auth/google"
                       className="w-full py-3 border-2 border-border rounded-button font-semibold text-base text-text-primary hover:bg-background hover:border-primary transition-all duration-300 flex items-center justify-center gap-3"
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
