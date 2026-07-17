@@ -106,4 +106,4 @@ jobs:
 
       - name: Smoke test health endpoint
         run: |
-          curl --fail --silent --show-error "${{ steps.deploy.outputs.url }}/health"
+          curl --fail --silent --show-error "${{ steps.deploy.outputs.url }}/api/health"
