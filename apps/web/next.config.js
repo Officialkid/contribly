@@ -1,6 +1,12 @@
-const runtimeApiOrigin = (process.env.NEXT_PUBLIC_API_URL || "")
+const productionApiOrigin = "https://contribly-410149640401.europe-west1.run.app";
+const configuredApiOrigin = (process.env.NEXT_PUBLIC_API_URL || "")
   .replace(/\/api\/?$/, "")
   .replace(/\/$/, "");
+const runtimeApiOrigin =
+  process.env.NODE_ENV === "production" &&
+  (!configuredApiOrigin || /onrender\.com/i.test(configuredApiOrigin))
+    ? productionApiOrigin
+    : configuredApiOrigin;
 
 const connectSrc = ["'self'"];
 
