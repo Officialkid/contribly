@@ -22,14 +22,6 @@ if (process.env.NODE_ENV !== "production") {
 const config = {
   reactStrictMode: true,
   swcMinify: true,
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${productionApiOrigin}/api/:path*`,
-      },
-    ];
-  },
   typescript: {
     ignoreBuildErrors: false,
   },
